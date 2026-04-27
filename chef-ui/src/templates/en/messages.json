@@ -1,0 +1,12 @@
+{
+    "chat": {
+        "greeting": "Hello, what would you like to eat today?",
+        "thinking": "The Chef is preparing the response..."
+    },
+    "errors": {
+        "noStateMachineArn": "Error: ORCHESTRATION_STATE_MACHINE_ARN not set.",
+        "noResult": "Sorry, the Chef could not process that request.",
+        "parseError": "Error processing the recipe: {raw_answer}",
+        "connectionError": "There was a connection error with the kitchen. Please try again in a moment."
+    }
+}

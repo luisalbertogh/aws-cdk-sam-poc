@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: Open Food Facts API caller
+
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [arm64]           # Graviton2 – cheaper & faster for Python
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        POWERTOOLS_LOG_LEVEL: INFO
+        POWERTOOLS_SERVICE_NAME: open-food-facts-api
+        OFF_PROD_URL: "https://world.openfoodfacts.org/cgi/search.pl"
+        OFF_STAGING_URL: "https://world.openfoodfacts.net/cgi/search.pl"
+    Layers:
+      - !Ref CommonDependenciesLayer  # Attach layer to all functions by default
+    Tracing: Active                   # X-Ray tracing
+    Tags:
+      Project: Commission-Chef-Assistant
+      Contact: Daniel Parres
+      Usage: AgentCore POC
+
+Resources:
+
+  # ----- Lambda Layer: shared Python dependencies -----
+  CommonDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: common-dependencies
+      Description: Shared Python packages (requests, boto3 extras, etc.)
+      ContentUri: layers/common_dependencies/
+      CompatibleRuntimes:
+        - python3.12
+      CompatibleArchitectures:
+        - arm64
+      RetentionPolicy: Retain         # Don't delete old versions on redeploy
+    Metadata:
+      BuildMethod: python3.12         # SAM installs requirements.txt automatically
+      BuildArchitecture: arm64        # Use arm64 for cheaper, faster Lambda execution
+
+  # ----- IAM Role -----
+  MyFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-OFFAPICallerRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole  # CloudWatch Logs write
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess                  # X-Ray tracing
+      Tags:
+        - Key: Project
+          Value: Commission-Chef-Assistant
+        - Key: Contact
+          Value: Daniel Parres
+        - Key: Usage
+          Value: AgentCore POC
+
+  # ----- CloudWatch Log Group -----
+  MyFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-OFFAPICaller"
+      RetentionInDays: 7
+      Tags:
+        - Key: Project
+          Value: Commission-Chef-Assistant
+        - Key: Contact
+          Value: Daniel Parres
+        - Key: Usage
+          Value: AgentCore POC
+
+  # ----- Lambda Function -----
+  MyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-OFFAPICaller"
+      CodeUri: src/
+      Handler: main.lambda_handler
+      Description: Invoke Open Food Facts API and process results
+      Role: !GetAtt MyFunctionRole.Arn
+
+Outputs:
+  MyFunctionArn:
+    Value: !GetAtt MyFunction.Arn
+  MyFunctionRoleArn:
+    Value: !GetAtt MyFunctionRole.Arn

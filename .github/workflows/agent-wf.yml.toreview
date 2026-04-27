@@ -1,0 +1,149 @@
+name: Agent — Build/Push to ECR and Deploy to AgentCore
+
+on:
+#   push:
+#     branches:
+#       - main
+#     paths:
+#       - "docker-sample/**"
+#       - ".github/workflows/docker-wf.yml"
+  workflow_dispatch:
+    inputs:
+      ecr_repository:
+        description: "Agent to build and deploy"
+        required: true
+        default: chef-agent
+        type: choice
+        options:
+          - chef-agent
+          - instructor-agent
+          - nutritionist-agent
+
+permissions:
+  id-token: write  # required for OIDC token issuance
+  contents: read
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_REGISTRY: 442042532301.dkr.ecr.eu-central-1.amazonaws.com
+  ECR_REPOSITORY: ${{ inputs.ecr_repository || 'chef-agent' }}
+  IMAGE_PLATFORM: linux/arm64
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker image
+    runs-on: ubuntu-latest
+
+    outputs:
+      latest_tag: ${{ steps.tags.outputs.latest_tag }}
+      short_sha:  ${{ steps.tags.outputs.short_sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      # -------------------------------------------------------------------------
+      # AWS credentials — OIDC federation, no long-lived secrets required
+      # -------------------------------------------------------------------------
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/agentcore-poc-infra-role
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: docker-ecr-push
+
+      # -------------------------------------------------------------------------
+      # ECR login — the action calls ecr:GetAuthorizationToken with the assumed
+      # role and configures the Docker daemon with the temporary credentials.
+      # No boto3 scripting needed; this is the AWS-recommended approach.
+      # -------------------------------------------------------------------------
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@f2e9fc6c2b355c1890b65e6f6f0e2ac3e6e22f78  # v2.1.2
+
+      # -------------------------------------------------------------------------
+      # Multi-platform build support (Dockerfile targets linux/arm64)
+      # -------------------------------------------------------------------------
+      - name: Set up QEMU (arm64 emulation)
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a  # v4.0.0
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd  # v4.0.0
+
+      # -------------------------------------------------------------------------
+      # Derive a short SHA tag so every image is uniquely addressable.
+      # Using both SHA and "latest" — note: if ECR tag immutability is IMMUTABLE,
+      # re-pushing "latest" will fail after the first push. Either disable
+      # immutability in config/ecr_config.py or rely solely on the SHA tag.
+      # -------------------------------------------------------------------------
+      - name: Derive image tags
+        id: tags
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          IMAGE_BASE="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}"
+          echo "sha_tag=${IMAGE_BASE}:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "latest_tag=${IMAGE_BASE}:latest"    >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}"             >> "$GITHUB_OUTPUT"
+
+      # -------------------------------------------------------------------------
+      # Build and push
+      # -------------------------------------------------------------------------
+      - name: Build and push Docker image
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294  # v7.0.0
+        with:
+          context: ${{ env.ECR_REPOSITORY }}
+          file: ${{ env.ECR_REPOSITORY }}/Dockerfile
+          platforms: ${{ env.IMAGE_PLATFORM }}
+          push: true
+          tags: ${{ steps.tags.outputs.latest_tag }}
+          # Layer cache backed by the ECR registry itself — no extra cache store needed
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:cache
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:cache,mode=max,image-manifest=true,oci-mediatypes=true
+
+      - name: Image digest
+        run: |
+          echo "Pushed ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}"
+          echo "  SHA tag : ${{ steps.tags.outputs.short_sha }}"
+          echo "  Latest  : latest"
+
+  # ---------------------------------------------------------------------------
+  # AgentCore Runtime update — separate job so the runtime refresh is clearly
+  # decoupled from the image build and can be re-run independently if needed.
+  # Credentials and checkout are re-established: GitHub Actions does not share
+  # environment, filesystem, or OIDC tokens across jobs.
+  # ---------------------------------------------------------------------------
+  update-agentcore-runtime:
+    name: Update AgentCore Runtime
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/agentcore-poc-infra-role
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: agentcore-runtime-update
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install boto3 --quiet
+
+      - name: Get current AgentCore Runtime details
+        run: |
+          python scripts/get_runtime_details.py "${{ env.ECR_REPOSITORY }}"
+
+      - name: Update AgentCore Runtime with new image
+        run: |
+          python scripts/update_runtime.py \
+            "${{ env.ECR_REPOSITORY }}" \
+            "${{ needs.build-and-push.outputs.latest_tag }}"
