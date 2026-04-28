@@ -11,7 +11,16 @@ on:
     branches:
       - main
       - feature/**
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform on the CDK stacks"
+        required: false
+        default: update
+        type: choice
+        options:
+          - update
+          - destroy
 
 permissions:
   id-token: write   # required for OIDC token issuance
@@ -123,64 +132,75 @@ jobs:
         run: cdk diff --all --color
 
   # ---------------------------------------------------------------------------
-  # Deploy — runs only on pushes to main (after validate succeeds)
+  # Deploy / Destroy — runs only on main (after validate succeeds).
+  # When action == 'destroy' the full stack suite is torn down instead.
   # ---------------------------------------------------------------------------
-  # deploy:
-  #   name: CDK Deploy
-  #   runs-on: ubuntu-latest
-  #   needs: validate
-  #   if: github.ref == 'refs/heads/main'
+  deploy:
+    name: CDK ${{ inputs.action == 'destroy' && 'Destroy' || 'Deploy' }}
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.ref == 'refs/heads/main'
 
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
-  #     - name: Configure AWS credentials via OIDC
-  #       uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
-  #       with:
-  #         role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-oidc-role
-  #         aws-region: ${{ env.AWS_REGION }}
-  #         role-session-name: cdk-infra-deploy
-  #         # Token audience must match the trust policy configured on the IAM role.
-  #         audience: sts.amazonaws.com
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: cdk-infra-deploy
+          # Token audience must match the trust policy configured on the IAM role.
+          audience: sts.amazonaws.com
 
-  #     - name: Set up Python ${{ env.PYTHON_VERSION }}
-  #       uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
-  #       with:
-  #         python-version: ${{ env.PYTHON_VERSION }}
-  #         cache: pip
-  #         cache-dependency-path: aws-infra/requirements-dev.txt
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: aws-infra/requirements-dev.txt
 
-  #     - name: Set up Node.js ${{ env.NODE_VERSION }} (CDK CLI)
-  #       uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
-  #       with:
-  #         node-version: ${{ env.NODE_VERSION }}
+      - name: Set up Node.js ${{ env.NODE_VERSION }} (CDK CLI)
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
-  #     - name: Install AWS CDK CLI
-  #       run: npm install -g aws-cdk
+      - name: Install AWS CDK CLI
+        run: npm install -g aws-cdk
 
-  #     - name: Install Python dependencies
-  #       working-directory: aws-infra
-  #       run: pip install -r requirements.txt
+      - name: Install Python dependencies
+        working-directory: aws-infra
+        run: pip install -r requirements.txt
 
-  #     - name: CDK Bootstrap (idempotent)
-  #       working-directory: aws-infra
-  #       env:
-  #         CDK_DEFAULT_ACCOUNT: ${{ env.AWS_ACCOUNT_ID }}
-  #       run: cdk bootstrap aws://${{ env.AWS_ACCOUNT_ID }}/${{ env.AWS_REGION }}
+      - name: CDK Bootstrap (idempotent)
+        if: inputs.action != 'destroy'
+        working-directory: aws-infra
+        env:
+          CDK_DEFAULT_ACCOUNT: ${{ env.AWS_ACCOUNT_ID }}
+        run: cdk bootstrap aws://${{ env.AWS_ACCOUNT_ID }}/${{ env.AWS_REGION }}
 
-  #     - name: CDK Deploy
-  #       working-directory: aws-infra
-  #       env:
-  #         CDK_DEFAULT_ACCOUNT: ${{ env.AWS_ACCOUNT_ID }}
-  #       run: |
-  #         cdk deploy --all \
-  #           --require-approval never \
-  #           --outputs-file cdk-outputs.json
+      - name: CDK Deploy
+        if: inputs.action != 'destroy'
+        working-directory: aws-infra
+        env:
+          CDK_DEFAULT_ACCOUNT: ${{ env.AWS_ACCOUNT_ID }}
+        run: |
+          cdk deploy --all \
+            --require-approval never \
+            --outputs-file cdk-outputs.json
 
-  #     - name: Upload CDK outputs
-  #       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
-  #       with:
-  #         name: cdk-outputs
-  #         path: aws-infra/cdk-outputs.json
-  #         retention-days: 7
+      - name: CDK Destroy
+        if: inputs.action == 'destroy'
+        working-directory: aws-infra
+        env:
+          CDK_DEFAULT_ACCOUNT: ${{ env.AWS_ACCOUNT_ID }}
+        run: cdk destroy --all --force
+
+      - name: Upload CDK outputs
+        if: inputs.action != 'destroy'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        with:
+          name: cdk-outputs
+          path: aws-infra/cdk-outputs.json
+          retention-days: 7
