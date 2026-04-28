@@ -67,7 +67,6 @@ def template() -> assertions.Template:
         app,
         "TestSecretsStack",
         secret_name=CHEF_UI_ECS_CONFIG.login_secret_name,
-        reader_role_arn=CHEF_UI_ECS_CONFIG.task_execution_role_arn,
         env=env,
     )
 

@@ -32,7 +32,7 @@ class SecretsStack(cdk.Stack):
         construct_id: str,
         *,
         secret_name: str,
-        reader_role_arn: str,
+        reader_role_arn: str | None = None,
         **kwargs: object,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -63,17 +63,18 @@ class SecretsStack(cdk.Stack):
         # The policy is attached directly to the secret resource, ensuring it
         # is fully in place before EcsStack references the secret ARN.
         # -------------------------------------------------------------------
-        self.login_secret.add_to_resource_policy(
-            iam.PolicyStatement(
-                sid="AllowEcsTaskExecutionRoleRead",
-                principals=[iam.ArnPrincipal(reader_role_arn)],
-                actions=[
-                    "secretsmanager:GetSecretValue",
-                    "secretsmanager:DescribeSecret",
-                ],
-                resources=["*"],
+        if reader_role_arn:
+            self.login_secret.add_to_resource_policy(
+                iam.PolicyStatement(
+                    sid="AllowEcsTaskExecutionRoleRead",
+                    principals=[iam.ArnPrincipal(reader_role_arn)],
+                    actions=[
+                        "secretsmanager:GetSecretValue",
+                        "secretsmanager:DescribeSecret",
+                    ],
+                    resources=["*"],
+                )
             )
-        )
 
         # -------------------------------------------------------------------
         # Outputs
