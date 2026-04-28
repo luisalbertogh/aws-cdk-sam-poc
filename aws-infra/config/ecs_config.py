@@ -63,7 +63,7 @@ class EcsServiceConfig:
     # from ECR and write CloudWatch logs.  This role already exists in the account
     # and is reused to avoid creating a duplicate.
     task_execution_role_arn: str = (
-        "arn:aws:iam::442042532301:role/ecsTaskExecutionRole"
+        "arn:aws:iam::741881499996:role/ecsTaskExecutionRole"
     )
 
     # ---------------------------------------------------------------------------

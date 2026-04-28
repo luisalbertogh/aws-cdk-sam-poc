@@ -5,7 +5,7 @@
     "ChefAgent": {
       "Type": "Task",
       "Arguments": {
-        "AgentRuntimeArn": "arn:aws:bedrock-agentcore:eu-central-1:442042532301:runtime/chef_agent-HbW7G4A5X5",
+        "AgentRuntimeArn": "arn:aws:bedrock-agentcore:eu-central-1:741881499996:runtime/chef_agent-HbW7G4A5X5",
         "Payload": {
           "inputText": "{% $states.input.input.prompt %}"
         }
@@ -27,7 +27,7 @@
     "InstructorAgent": {
       "Type": "Task",
       "Arguments": {
-        "AgentRuntimeArn": "arn:aws:bedrock-agentcore:eu-central-1:442042532301:runtime/instructor_agent-xkBt3o8M2S",
+        "AgentRuntimeArn": "arn:aws:bedrock-agentcore:eu-central-1:741881499996:runtime/instructor_agent-xkBt3o8M2S",
         "Payload": {
           "output": "{% $states.input.output %}"
         }
@@ -39,7 +39,7 @@
     "NutritionistAgent": {
       "Type": "Task",
       "Arguments": {
-        "AgentRuntimeArn": "arn:aws:bedrock-agentcore:eu-central-1:442042532301:runtime/nutritionist_agent-UhY62L7bNf",
+        "AgentRuntimeArn": "arn:aws:bedrock-agentcore:eu-central-1:741881499996:runtime/nutritionist_agent-UhY62L7bNf",
         "Payload": {
           "output": "{% $states.input.output %}"
         }

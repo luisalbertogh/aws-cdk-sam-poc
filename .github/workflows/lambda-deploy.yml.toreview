@@ -87,7 +87,7 @@ jobs:
             --query "Exports[?Name=='AgentCorePocStorageStack-BucketName'].Value" \
             --output text)" >> $GITHUB_ENV
 
-          echo "LAMBDA_EXECUTION_ROLE_ARN=arn:aws:iam::442042532301:role/AgentCorePocComputeStack-openFoodFactsAPIServiceRol-iVphXGoScYlP" >> $GITHUB_ENV
+          echo "LAMBDA_EXECUTION_ROLE_ARN=arn:aws:iam::741881499996:role/AgentCorePocComputeStack-openFoodFactsAPIServiceRol-iVphXGoScYlP" >> $GITHUB_ENV
 
       - name: Test env variables
         run: |

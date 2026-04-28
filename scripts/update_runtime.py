@@ -12,7 +12,7 @@ Usage:
 
 Example:
     python scripts/update_runtime.py chef-agent \
-        442042532301.dkr.ecr.eu-central-1.amazonaws.com/chef-agent:latest
+        741881499996.dkr.ecr.eu-central-1.amazonaws.com/chef-agent:latest
 """
 
 import json
