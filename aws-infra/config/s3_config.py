@@ -1,5 +1,5 @@
 """
-S3 bucket configuration for the AgentCore POC infrastructure.
+S3 bucket configuration for the Cloud POC infrastructure.
 
 All S3 bucket settings are centralised here so that the stack
 remains policy-agnostic and configuration changes never require
@@ -13,7 +13,7 @@ from aws_cdk import aws_s3 as s3
 
 @dataclass(frozen=True)
 class S3BucketConfig:
-    """Immutable configuration for the AgentCore POC S3 bucket."""
+    """Immutable configuration for the Cloud POC S3 bucket."""
 
     # ---------------------------------------------------------------------------
     # Encryption
@@ -58,4 +58,4 @@ class S3BucketConfig:
 # ---------------------------------------------------------------------------
 # Singleton instance consumed by the stack
 # ---------------------------------------------------------------------------
-AGENTCORE_BUCKET_CONFIG = S3BucketConfig()
+CLOUD_BUCKET_CONFIG = S3BucketConfig()

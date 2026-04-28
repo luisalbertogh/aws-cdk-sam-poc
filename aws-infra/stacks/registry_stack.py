@@ -1,10 +1,10 @@
 """
-RegistryStack — deploys the AgentCore POC ECR repositories.
+RegistryStack — deploys the Cloud POC ECR repositories.
 
 Design decisions
 ----------------
 - Explicit repository names ("chef-agent", "nutritionist-agent",
-  "instructor-agent"): AgentCore Runtime resource policies reference each
+  "instructor-agent"): Cloud Runtime resource policies reference each
   repository by ARN, so predictable names are required.
 - Private visibility: enforced by default in ECR; no public access possible.
 - Tag immutability: prevents silent overwrite of existing image tags, which is
@@ -42,7 +42,7 @@ _AGENT_REPOS = [
 
 
 class RegistryStack(cdk.Stack):
-    """CDK stack that provisions the AgentCore POC ECR repositories."""
+    """CDK stack that provisions the Cloud POC ECR repositories."""
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs: object) -> None:
         super().__init__(scope, construct_id, **kwargs)

@@ -4,34 +4,32 @@ import aws_cdk as cdk
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_logs as logs
 from aws_cdk import aws_stepfunctions as sfn
-from config.orchestration_config import AGENTCORE_ORCHESTRATION_CONFIG
+from config.orchestration_config import CLOUD_ORCHESTRATION_CONFIG
 from constructs import Construct
 
 
 class OrchestrationStack(cdk.Stack):
     """
-    Step Functions orchestration stack for the AgentCore POC.
+    Step Functions orchestration stack for the Cloud POC.
 
     Provisions:
     - CloudWatch Log Group for state machine execution logging
     - IAM execution role with least-privilege permissions:
         * CloudWatch Logs delivery (required for SF logging)
         * X-Ray tracing
-        * bedrock-agentcore:InvokeAgentRuntime on every AgentCore Runtime
     - A "Hello World" state machine that demonstrates the orchestration pattern
-      (Pass → Pass → Succeed) and is ready to be extended with AgentCore tasks
+      (Pass → Pass → Succeed) and is ready to be extended with Cloud tasks
     """
 
     def __init__(
         self,
         scope: Construct,
         construct_id: str,
-        compute_stack,
         **kwargs: object,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        cfg = AGENTCORE_ORCHESTRATION_CONFIG
+        cfg = CLOUD_ORCHESTRATION_CONFIG
 
         # ------------------------------------------------------------------ #
         # CloudWatch Log Group                                                 #
@@ -57,7 +55,7 @@ class OrchestrationStack(cdk.Stack):
                     }
                 },
             ),
-            description="Execution role for the AgentCore Hello World state machine",
+            description="Execution role for the Cloud Hello World state machine",
         )
 
         # CloudWatch Logs — all actions required by Step Functions for log delivery
@@ -92,24 +90,6 @@ class OrchestrationStack(cdk.Stack):
                     "xray:GetSamplingTargets",
                 ],
                 resources=["*"],
-            )
-        )
-
-        # AgentCore Runtime invocation — one statement covering all three runtimes
-        runtime_arns = [
-            arn
-            for runtime in compute_stack.runtimes.values()
-            for arn in (
-                runtime.agent_runtime_arn,
-                f"{runtime.agent_runtime_arn}/*",
-            )
-        ]
-        self.execution_role.add_to_policy(
-            iam.PolicyStatement(
-                sid="AllowInvokeAgentCoreRuntimes",
-                effect=iam.Effect.ALLOW,
-                actions=["bedrock-agentcore:InvokeAgentRuntime"],
-                resources=runtime_arns,
             )
         )
 

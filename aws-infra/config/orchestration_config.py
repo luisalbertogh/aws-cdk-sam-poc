@@ -13,4 +13,4 @@ class OrchestrationConfig:
     removal_policy: cdk.RemovalPolicy = cdk.RemovalPolicy.DESTROY
 
 
-AGENTCORE_ORCHESTRATION_CONFIG = OrchestrationConfig()
+CLOUD_ORCHESTRATION_CONFIG = OrchestrationConfig()

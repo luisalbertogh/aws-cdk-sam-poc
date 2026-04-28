@@ -1,5 +1,5 @@
 """
-ECR repository configuration for the AgentCore POC infrastructure.
+ECR repository configuration for the Cloud POC infrastructure.
 
 All ECR settings are centralised here so that the stack remains
 policy-agnostic and configuration changes never require touching
@@ -11,12 +11,12 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class EcrRepositoryConfig:
-    """Immutable configuration for an AgentCore POC ECR repository."""
+    """Immutable configuration for an Cloud POC ECR repository."""
 
     # ---------------------------------------------------------------------------
     # Repository identity
     # ---------------------------------------------------------------------------
-    # Explicit name so the AgentCore Runtime resource policy can reference it
+    # Explicit name so the Cloud Runtime resource policy can reference it
     # by a predictable ARN without cross-stack exports.
     repository_name: str = "chef-agent"
 
@@ -65,7 +65,7 @@ INSTRUCTOR_AGENT_ECR_CONFIG = EcrRepositoryConfig(repository_name="instructor-ag
 CHEF_UI_ECR_CONFIG = EcrRepositoryConfig(repository_name="chef-ui")
 
 # Kept for backwards compatibility — points to the chef-agent repository.
-AGENTCORE_ECR_CONFIG = CHEF_AGENT_ECR_CONFIG
+CLOUD_ECR_CONFIG = CHEF_AGENT_ECR_CONFIG
 
 # Nova Model IDs (Amazon Bedrock)
 NOVA_MODEL_ID = "amazon.nova-2-lite-v1:0"

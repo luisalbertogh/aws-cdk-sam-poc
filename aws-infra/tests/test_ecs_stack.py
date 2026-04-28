@@ -54,7 +54,7 @@ def _make_repo(scope: cdk.Stack) -> ecr.Repository:
 def template() -> assertions.Template:
     """Synthesise the EcsStack and return the assertions template."""
     app = cdk.App()
-    env = cdk.Environment(account="442042532301", region="eu-central-1")
+    env = cdk.Environment(account="442042532301", region="us-east-1")
 
     # Helper stack to host VPC, SG, and ECR repo (cross-stack refs in tests
     # work by sharing the same CDK App scope).
@@ -78,12 +78,7 @@ def template() -> assertions.Template:
         security_group=sg,
         chef_ui_repository=repo,
         login_secret=secrets_stack.login_secret,
-        agent_runtime_arns=[
-            "arn:aws:bedrock-agentcore:eu-central-1:123456789123:runtime/chef_agent-AAAAAAAAAA",
-            "arn:aws:bedrock-agentcore:eu-central-1:123456789123:runtime/nutritionist_agent-AAAAAAAAAA",
-            "arn:aws:bedrock-agentcore:eu-central-1:123456789123:runtime/instructor_agent-AAAAAAAAAA"
-        ],
-        state_machine_arn="arn:aws:states:eu-central-1:442042532301:stateMachine:TestStateMachine",
+        state_machine_arn="arn:aws:states:us-east-1:442042532301:stateMachine:TestStateMachine",
         env=env,
     )
     return assertions.Template.from_stack(ecs_stack)

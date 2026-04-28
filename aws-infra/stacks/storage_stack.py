@@ -1,5 +1,5 @@
 """
-StorageStack — deploys the AgentCore POC S3 bucket.
+StorageStack — deploys the Cloud POC S3 bucket.
 
 Design decisions
 ----------------
@@ -19,16 +19,16 @@ import aws_cdk as cdk
 from aws_cdk import aws_s3 as s3
 from constructs import Construct
 
-from config import AGENTCORE_BUCKET_CONFIG
+from config import CLOUD_BUCKET_CONFIG
 
 
 class StorageStack(cdk.Stack):
-    """CDK stack that provisions the AgentCore POC S3 bucket."""
+    """CDK stack that provisions the Cloud POC S3 bucket."""
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs: object) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        cfg = AGENTCORE_BUCKET_CONFIG
+        cfg = CLOUD_BUCKET_CONFIG
 
         removal_policy = (
             cdk.RemovalPolicy.RETAIN
@@ -38,7 +38,7 @@ class StorageStack(cdk.Stack):
 
         self.bucket = s3.Bucket(
             self,
-            "AgentCoreBucket",
+            "CloudBucket",
             # --- Encryption at rest ---
             encryption=cfg.encryption,
             # --- Private access ---
@@ -59,7 +59,7 @@ class StorageStack(cdk.Stack):
             self,
             "BucketName",
             value=self.bucket.bucket_name,
-            description="Name of the AgentCore POC S3 bucket",
+            description="Name of the Cloud POC S3 bucket",
             export_name=f"{self.stack_name}-BucketName",
         )
 
@@ -67,6 +67,6 @@ class StorageStack(cdk.Stack):
             self,
             "BucketArn",
             value=self.bucket.bucket_arn,
-            description="ARN of the AgentCore POC S3 bucket",
+            description="ARN of the Cloud POC S3 bucket",
             export_name=f"{self.stack_name}-BucketArn",
         )

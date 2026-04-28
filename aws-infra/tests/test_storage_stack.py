@@ -19,7 +19,7 @@ def template() -> assertions.Template:
     stack = StorageStack(
         app,
         "TestStorageStack",
-        env=cdk.Environment(account="123456789012", region="eu-central-1"),
+        env=cdk.Environment(account="123456789012", region="us-east-1"),
     )
     return assertions.Template.from_stack(stack)
 

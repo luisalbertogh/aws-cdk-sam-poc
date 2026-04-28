@@ -1,5 +1,5 @@
 """
-Network configuration for the AgentCore POC infrastructure.
+Network configuration for the Cloud POC infrastructure.
 
 All VPC and security-group settings are centralised here so that the stack
 remains policy-agnostic and configuration changes never require touching
@@ -65,7 +65,7 @@ class SubnetConfig:
 
 @dataclass(frozen=True)
 class NetworkConfig:
-    """Immutable configuration for the AgentCore POC network stack."""
+    """Immutable configuration for the Cloud POC network stack."""
 
     # -----------------------------------------------------------------------
     # VPC
@@ -120,4 +120,4 @@ class NetworkConfig:
 # ---------------------------------------------------------------------------
 # Singleton instance consumed by the stack
 # ---------------------------------------------------------------------------
-AGENTCORE_NETWORK_CONFIG = NetworkConfig()
+CLOUD_NETWORK_CONFIG = NetworkConfig()

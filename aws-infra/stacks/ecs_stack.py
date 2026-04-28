@@ -51,7 +51,6 @@ class EcsStack(cdk.Stack):
         security_group: ec2.ISecurityGroup,
         chef_ui_repository: ecr.IRepository,
         login_secret: secretsmanager.ISecret,
-        agent_runtime_arns: list[str],
         state_machine_arn: str,
         **kwargs: object,
     ) -> None:
@@ -101,16 +100,6 @@ class EcsStack(cdk.Stack):
             assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
             description="IAM role assumed by the chef-ui ECS Fargate task",
         )
-
-        # Bedrock AgentCore InvokeAgentRuntime permission
-        if agent_runtime_arns:
-            self.task_role.add_to_policy(
-                iam.PolicyStatement(
-                    effect=iam.Effect.ALLOW,
-                    actions=["bedrock-agentcore:InvokeAgentRuntime"],
-                    resources=[f"{arn}*" for arn in agent_runtime_arns]
-                )
-            )
 
         # Step Functions — allow the container to start and monitor executions
         # of any state machine / execution in the same account and region.
@@ -198,9 +187,6 @@ class EcsStack(cdk.Stack):
             environment={
                 "PYTHONUNBUFFERED": "1",
                 "AWS_REGION": self.region,
-                "CHEF_AGENT_AGENTCORE_RUNTIME_ARN": agent_runtime_arns[0],
-                "NUTRITIONIST_AGENT_AGENTCORE_RUNTIME_ARN": agent_runtime_arns[1],
-                "INSTRUCTOR_AGENT_AGENTCORE_RUNTIME_ARN": agent_runtime_arns[2],
                 "ORCHESTRATION_STATE_MACHINE_ARN": state_machine_arn,
             },
             secrets={
@@ -284,4 +270,3 @@ class EcsStack(cdk.Stack):
             description="CloudWatch log group for Chef UI container logs",
             export_name=f"{self.stack_name}-LogGroupName",
         )
-

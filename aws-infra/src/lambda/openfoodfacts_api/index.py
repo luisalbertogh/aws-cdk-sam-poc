@@ -69,7 +69,7 @@ searcher = OpenFoodFactsAPI(
 # Lambda Handler
 def lambda_handler(event, context):
     """
-    Modified for AgentCore Gateway (MCP Protocol).
+    Modified for Cloud Gateway (MCP Protocol).
     The Gateway passes parameters inside an 'arguments' dictionary.
     Expects event: {"product_name": "Nutella", "limit": 5}
     """
@@ -95,7 +95,7 @@ def lambda_handler(event, context):
 
     results = searcher.search(product_name, limit)
 
-    # AgentCore expects a specific response structure for tools
+    # Cloud Gateway expects a specific response structure for tools
     return {
         "statusCode": 200,
         "body": results.model_dump_json()

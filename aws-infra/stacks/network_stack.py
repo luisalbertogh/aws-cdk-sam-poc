@@ -22,16 +22,16 @@ import aws_cdk as cdk
 from aws_cdk import aws_ec2 as ec2
 from constructs import Construct
 
-from config import AGENTCORE_NETWORK_CONFIG
+from config import CLOUD_NETWORK_CONFIG
 
 
 class NetworkStack(cdk.Stack):
-    """CDK stack that provisions the AgentCore POC VPC and security group."""
+    """CDK stack that provisions the Cloud POC VPC and security group."""
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs: object) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        cfg = AGENTCORE_NETWORK_CONFIG
+        cfg = CLOUD_NETWORK_CONFIG
 
         removal_policy = (
             cdk.RemovalPolicy.RETAIN
@@ -49,7 +49,7 @@ class NetworkStack(cdk.Stack):
         # -------------------------------------------------------------------
         self.vpc = ec2.Vpc(
             self,
-            "AgentCoreVpc",
+            "CloudVpc",
             ip_addresses=ec2.IpAddresses.cidr(cfg.vpc_cidr),
             max_azs=cfg.max_azs,
             nat_gateways=cfg.nat_gateways,
@@ -107,7 +107,7 @@ class NetworkStack(cdk.Stack):
             self,
             "VpcId",
             value=self.vpc.vpc_id,
-            description="ID of the AgentCore POC VPC",
+            description="ID of the Cloud POC VPC",
             export_name=f"{self.stack_name}-VpcId",
         )
 
@@ -115,7 +115,7 @@ class NetworkStack(cdk.Stack):
             self,
             "VpcCidr",
             value=self.vpc.vpc_cidr_block,
-            description="CIDR block of the AgentCore POC VPC",
+            description="CIDR block of the Cloud POC VPC",
             export_name=f"{self.stack_name}-VpcCidr",
         )
 
