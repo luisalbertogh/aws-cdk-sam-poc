@@ -73,7 +73,7 @@ class EcsServiceConfig:
     # The secret is created empty by the stack; its JSON value must be populated
     # manually with the following fields: CHAINLIT_AUTH_SECRET, CHEF_UI_USER,
     # CHEF_UI_PASSWORD.
-    login_secret_name: str = "chef-ui-login-credentials"
+    login_secret_name: str = "chef-ui-login"
 
     # ---------------------------------------------------------------------------
     # Removal policy
