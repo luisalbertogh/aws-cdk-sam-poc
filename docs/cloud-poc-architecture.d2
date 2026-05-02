@@ -1,0 +1,417 @@
+# Cloud POC AWS CDK Architecture Diagram
+# This diagram depicts the overall AWS infrastructure defined by the CDK code
+
+direction: right
+
+# Define reusable classes for styling
+classes: {
+  active: {
+    style: {
+      fill: "#e8f5e9"
+      stroke: "#4caf50"
+      stroke-width: 3
+      font-size: 40
+      bold: true
+    }
+  }
+  
+  inactive: {
+    style: {
+      fill: "#f5f5f5"
+      stroke: "#9e9e9e"
+      stroke-width: 2
+      stroke-dash: 5
+      font-size: 40
+      bold: true
+    }
+  }
+  
+  resource: {
+    style: {
+      font-size: 35
+      bold: false
+    }
+  }
+}
+
+# AWS Region container
+aws-region: {
+  label: AWS Region (us-east-1)
+  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/aws_region.svg
+  style: {
+    font-size: 55
+  }
+  
+  # Network Stack - ACTIVE
+  network-stack: {
+    label: "Network Stack\n(CloudPocNetworkStack)\n[ACTIVE]"
+    class: active
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/vpc.svg
+    
+    # VPC
+    vpc: {
+      label: "VPC\n10.0.0.0/27"
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/vpc.svg
+      class: resource
+      
+      # Internet Gateway
+      igw: {
+        shape: image
+        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/internet_gw.svg
+        label: "Internet Gateway"
+        class: resource
+      }
+      
+      # Public Subnets
+      subnet1: {
+        shape: image
+        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/public_subnet.svg
+        label: "Public Subnet 1\nAZ-1"
+        class: resource
+      }
+      
+      subnet2: {
+        shape: image
+        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/public_subnet.svg
+        label: "Public Subnet 2\nAZ-2"
+        class: resource
+      }
+      
+      # Security Group
+      sg: {
+        shape: image
+        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/waf.svg
+        label: "Security Group\nchef-ui-sg"
+        class: resource
+      }
+    }
+  }
+  
+  # Storage Stack - ACTIVE
+  storage-stack: {
+    label: "Storage Stack\n(CloudPocStorageStack)\n[ACTIVE]"
+    class: active
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/s3_bucket.svg
+    
+    # S3 Bucket
+    s3: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/s3_bucket.svg
+      label: "S3 Bucket\nSSE-S3 Encryption\nPrivate Access"
+      class: resource
+    }
+  }
+  
+  # Registry Stack - ACTIVE
+  registry-stack: {
+    label: "Registry Stack\n(CloudPocRegistryStack)\n[ACTIVE]"
+    class: active
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
+    
+    # ECR Repository
+    ecr-registry: {
+      label: "ECR Registry"
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr_registry.svg
+      class: resource
+      
+      # Individual repositories
+      chef-ui-repo: {
+        shape: image
+        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
+        label: "chef-ui\nrepository"
+        style: {
+          font-size: 30
+        }
+      }
+      
+      chef-agent-repo: {
+        shape: image
+        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
+        label: "chef-agent\nrepository"
+        style: {
+          font-size: 30
+        }
+      }
+      
+      nutritionist-repo: {
+        shape: image
+        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
+        label: "nutritionist-agent\nrepository"
+        style: {
+          font-size: 30
+        }
+      }
+      
+      instructor-repo: {
+        shape: image
+        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
+        label: "instructor-agent\nrepository"
+        style: {
+          font-size: 30
+        }
+      }
+    }
+  }
+  
+  # Secrets Stack - ACTIVE
+  secrets-stack: {
+    label: "Secrets Stack\n(CloudPocSecretsStack)\n[ACTIVE]"
+    class: active
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/secrets.svg
+    
+    # Secrets Manager Secret
+    secret: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/secrets.svg
+      label: "Secrets Manager\nchef-ui-login-passwords\n(Chainlit Auth)"
+      class: resource
+    }
+  }
+  
+  # Orchestration Stack - INACTIVE (commented out)
+  orchestration-stack: {
+    label: "Orchestration Stack\n(CloudPocOrchestrationStack)\n[COMMENTED OUT]"
+    class: inactive
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/scheduler.svg
+    
+    # Step Functions
+    sfn: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/scheduler.svg
+      label: "Step Functions\nHello World Workflow\n(state machine)"
+      class: resource
+    }
+    
+    # CloudWatch Logs for SFN
+    sfn-logs: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/cloud_watch.svg
+      label: "CloudWatch Logs\nState Machine Logs"
+      class: resource
+    }
+    
+    # IAM Role
+    sfn-role: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_role.svg
+      label: "IAM Role\nExecution Role"
+      class: resource
+    }
+  }
+  
+  # ECS Stack - INACTIVE (commented out)
+  ecs-stack: {
+    label: "ECS Stack\n(CloudPocEcsStack)\n[COMMENTED OUT]"
+    class: inactive
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs.svg
+    
+    # ECS Cluster
+    ecs-cluster: {
+      label: "ECS Fargate Cluster"
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs.svg
+      class: resource
+      
+      # ECS Service
+      ecs-service: {
+        shape: image
+        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs_service.svg
+        label: "Chef UI Service\nFargate (ARM64)\n0.5 vCPU, 2GB RAM"
+        style: {
+          font-size: 30
+        }
+      }
+    }
+    
+    # CloudWatch Logs for ECS
+    ecs-logs: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/cloud_watch.svg
+      label: "CloudWatch Logs\n/aws/ecs/chef-ui"
+      class: resource
+    }
+    
+    # IAM Task Role
+    task-role: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_role.svg
+      label: "IAM Task Role\nchef-ui-task-role"
+      class: resource
+    }
+  }
+}
+
+# External Users
+users: {
+  shape: image
+  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/users.svg
+  label: "Internet Users"
+  style: {
+    font-size: 45
+  }
+}
+
+# Internet
+internet: {
+  shape: image
+  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/others/internet.svg
+  label: "Internet"
+  style: {
+    font-size: 45
+  }
+}
+
+# CI/CD Pipeline
+cicd: {
+  shape: image
+  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/others/github.svg
+  label: "GitHub Actions\nCI/CD Pipeline"
+  style: {
+    font-size: 45
+  }
+}
+
+# Connections - Active Infrastructure
+
+# Internet to VPC
+users -> internet: "HTTPS Requests" {
+  style: {
+    font-size: 35
+    stroke: "#4caf50"
+    stroke-width: 3
+  }
+}
+
+internet -> aws-region.network-stack.vpc.igw: "via IGW" {
+  style: {
+    font-size: 35
+    stroke: "#4caf50"
+    stroke-width: 3
+  }
+}
+
+# IGW to Subnets
+aws-region.network-stack.vpc.igw -> aws-region.network-stack.vpc.subnet1: "routes traffic" {
+  style: {
+    font-size: 35
+    stroke: "#4caf50"
+    stroke-width: 2
+  }
+}
+
+aws-region.network-stack.vpc.igw -> aws-region.network-stack.vpc.subnet2: "routes traffic" {
+  style: {
+    font-size: 35
+    stroke: "#4caf50"
+    stroke-width: 2
+  }
+}
+
+# Security Group protects subnets
+aws-region.network-stack.vpc.sg -> aws-region.network-stack.vpc.subnet1: "protects" {
+  style: {
+    font-size: 35
+    stroke: "#4caf50"
+    stroke-width: 2
+    stroke-dash: 3
+  }
+}
+
+aws-region.network-stack.vpc.sg -> aws-region.network-stack.vpc.subnet2: "protects" {
+  style: {
+    font-size: 35
+    stroke: "#4caf50"
+    stroke-width: 2
+    stroke-dash: 3
+  }
+}
+
+# CI/CD to ECR
+cicd -> aws-region.registry-stack.ecr-registry: "pushes images" {
+  style: {
+    font-size: 35
+    stroke: "#4caf50"
+    stroke-width: 3
+    animated: true
+  }
+}
+
+# Connections - Inactive Infrastructure (if enabled)
+
+# ECS Service would pull from ECR
+aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.registry-stack.ecr-registry.chef-ui-repo: "pulls image" {
+  style: {
+    font-size: 35
+    stroke: "#9e9e9e"
+    stroke-width: 2
+    stroke-dash: 5
+  }
+}
+
+# ECS Service would use Secrets
+aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.secrets-stack.secret: "reads credentials" {
+  style: {
+    font-size: 35
+    stroke: "#9e9e9e"
+    stroke-width: 2
+    stroke-dash: 5
+  }
+}
+
+# ECS Service would run in VPC
+aws-region.network-stack.vpc.subnet1 -> aws-region.ecs-stack.ecs-cluster.ecs-service: "hosts tasks" {
+  style: {
+    font-size: 35
+    stroke: "#9e9e9e"
+    stroke-width: 2
+    stroke-dash: 5
+  }
+}
+
+# ECS would send logs to CloudWatch
+aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.ecs-stack.ecs-logs: "sends logs" {
+  style: {
+    font-size: 35
+    stroke: "#9e9e9e"
+    stroke-width: 2
+    stroke-dash: 5
+  }
+}
+
+# ECS Service would invoke Step Functions
+aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.orchestration-stack.sfn: "starts executions" {
+  style: {
+    font-size: 35
+    stroke: "#9e9e9e"
+    stroke-width: 2
+    stroke-dash: 5
+  }
+}
+
+# Step Functions would send logs to CloudWatch
+aws-region.orchestration-stack.sfn -> aws-region.orchestration-stack.sfn-logs: "sends logs" {
+  style: {
+    font-size: 35
+    stroke: "#9e9e9e"
+    stroke-width: 2
+    stroke-dash: 5
+  }
+}
+
+# Legend
+legend: {
+  label: "Legend"
+  style: {
+    font-size: 40
+    bold: true
+  }
+  
+  active-stack: {
+    label: "Active Stack\n(Deployed)"
+    class: active
+  }
+  
+  inactive-stack: {
+    label: "Inactive Stack\n(Commented Out)"
+    class: inactive
+  }
+}
