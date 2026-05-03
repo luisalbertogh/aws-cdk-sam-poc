@@ -59,13 +59,4 @@ class EcrRepositoryConfig:
 # ---------------------------------------------------------------------------
 # Per-agent repository configurations consumed by the stack
 # ---------------------------------------------------------------------------
-CHEF_AGENT_ECR_CONFIG = EcrRepositoryConfig(repository_name="chef-agent")
-NUTRITIONIST_AGENT_ECR_CONFIG = EcrRepositoryConfig(repository_name="nutritionist-agent")
-INSTRUCTOR_AGENT_ECR_CONFIG = EcrRepositoryConfig(repository_name="instructor-agent")
 CHEF_UI_ECR_CONFIG = EcrRepositoryConfig(repository_name="chef-ui")
-
-# Kept for backwards compatibility — points to the chef-agent repository.
-CLOUD_ECR_CONFIG = CHEF_AGENT_ECR_CONFIG
-
-# Nova Model IDs (Amazon Bedrock)
-NOVA_MODEL_ID = "amazon.nova-2-lite-v1:0"

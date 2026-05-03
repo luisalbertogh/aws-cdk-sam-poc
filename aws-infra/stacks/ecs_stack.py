@@ -49,6 +49,7 @@ class EcsStack(cdk.Stack):
         *,
         vpc: ec2.IVpc,
         security_group: ec2.ISecurityGroup,
+        cluster: ecs.ICluster,
         chef_ui_repository: ecr.IRepository,
         login_secret: secretsmanager.ISecret,
         state_machine_arn: str,
@@ -146,14 +147,13 @@ class EcsStack(cdk.Stack):
         )
 
         # -------------------------------------------------------------------
-        # ECS cluster
+        # ECS cluster — injected from app.py
+        #
+        # The cluster is created independently in app.py before this stack
+        # to ensure it exists before SecretsStack and other dependent
+        # resources are provisioned.
         # -------------------------------------------------------------------
-        self.cluster = ecs.Cluster(
-            self,
-            "ChefUiCluster",
-            cluster_name="chef-assistant-cluster",
-            vpc=vpc,
-        )
+        self.cluster = cluster
 
         # -------------------------------------------------------------------
         # Fargate task definition

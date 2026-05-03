@@ -1,61 +1,18 @@
 {
-  "Comment": "Digital Kitchen Orchestrator: Chef -> Instructor -> Nutritionist",
-  "StartAt": "ChefAgent",
+  "Comment": "A simple Hello World workflow for the Cloud POC",
+  "StartAt": "HelloWorld",
   "States": {
-    "ChefAgent": {
-      "Type": "Task",
-      "Arguments": {
-        "AgentRuntimeArn": "arn:aws:bedrock-agentcore:eu-central-1:741881499996:runtime/chef_agent-HbW7G4A5X5",
-        "Payload": {
-          "inputText": "{% $states.input.input.prompt %}"
-        }
-      },
-      "Resource": "arn:aws:states:::aws-sdk:bedrockagentcore:invokeAgentRuntime",
-      "Output": "{% $parse($states.result.Response) %}",
-      "Next": "IsProcessComplete"
-    },
-    "IsProcessComplete": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Condition": "{% $states.input.control.is_final = true %}",
-          "Next": "FinalOutput"
-        }
-      ],
-      "Default": "InstructorAgent"
-    },
-    "InstructorAgent": {
-      "Type": "Task",
-      "Arguments": {
-        "AgentRuntimeArn": "arn:aws:bedrock-agentcore:eu-central-1:741881499996:runtime/instructor_agent-xkBt3o8M2S",
-        "Payload": {
-          "output": "{% $states.input.output %}"
-        }
-      },
-      "Resource": "arn:aws:states:::aws-sdk:bedrockagentcore:invokeAgentRuntime",
-      "Output": "{% $parse($states.result.Response) %}",
-      "Next": "NutritionistAgent"
-    },
-    "NutritionistAgent": {
-      "Type": "Task",
-      "Arguments": {
-        "AgentRuntimeArn": "arn:aws:bedrock-agentcore:eu-central-1:741881499996:runtime/nutritionist_agent-UhY62L7bNf",
-        "Payload": {
-          "output": "{% $states.input.output %}"
-        }
-      },
-      "Resource": "arn:aws:states:::aws-sdk:bedrockagentcore:invokeAgentRuntime",
-      "Output": "{% $parse($states.result.Response) %}",
-      "Next": "FinalOutput"
-    },
-    "FinalOutput": {
+    "HelloWorld": {
       "Type": "Pass",
-      "Output": {
-        "result": "{% $states.input.output %}",
-        "full_response": "{% $states.input.completion %}"
+      "Result": {
+        "message": "Hello World from Step Functions!",
+        "timestamp": "2026-05-03"
       },
-      "End": true
+      "ResultPath": "$.hello",
+      "Next": "Success"
+    },
+    "Success": {
+      "Type": "Succeed"
     }
-  },
-  "QueryLanguage": "JSONata"
+  }
 }

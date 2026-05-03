@@ -1,5 +1,6 @@
 """CDK stacks for the Cloud POC infrastructure."""
 
+from .cluster_stack import ClusterStack
 from .ecs_stack import EcsStack
 from .network_stack import NetworkStack
 from .registry_stack import RegistryStack
@@ -8,6 +9,7 @@ from .orchestration_stack import OrchestrationStack
 from .storage_stack import StorageStack
 
 __all__ = [
+    "ClusterStack",
     "EcsStack",
     "NetworkStack",
     "OrchestrationStack",

@@ -25,18 +25,12 @@ from aws_cdk import aws_iam as iam
 from constructs import Construct
 
 from config import (
-    CHEF_AGENT_ECR_CONFIG,
-    CHEF_UI_ECR_CONFIG,
-    INSTRUCTOR_AGENT_ECR_CONFIG,
-    NUTRITIONIST_AGENT_ECR_CONFIG,
+    CHEF_UI_ECR_CONFIG
 )
 
 
 # Mapping of logical construct ID prefix → config for each agent repository.
 _AGENT_REPOS = [
-    ("ChefAgent", CHEF_AGENT_ECR_CONFIG),
-    ("NutritionistAgent", NUTRITIONIST_AGENT_ECR_CONFIG),
-    ("InstructorAgent", INSTRUCTOR_AGENT_ECR_CONFIG),
     ("ChefUi", CHEF_UI_ECR_CONFIG),
 ]
 

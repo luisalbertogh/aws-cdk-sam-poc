@@ -12,7 +12,7 @@ import aws_cdk as cdk
 
 from config import COMMON_TAGS
 from config.ecs_config import CHEF_UI_ECS_CONFIG
-from stacks import EcsStack, NetworkStack, OrchestrationStack, RegistryStack, SecretsStack, StorageStack
+from stacks import ClusterStack, EcsStack, NetworkStack, OrchestrationStack, RegistryStack, SecretsStack, StorageStack
 
 app = cdk.App()
 
@@ -47,32 +47,46 @@ registry_stack = RegistryStack(
     description="Cloud POC — private ECR repository for chef-assistant images",
 )
 
+# ---------------------------------------------------------------------------
+# ECS Cluster — created before SecretsStack
+# This ensures the cluster exists before any dependent resources are created.
+# ---------------------------------------------------------------------------
+cluster_stack = ClusterStack(
+    app,
+    "CloudPocClusterStack",
+    vpc=network_stack.vpc,
+    env=env,
+    description="Cloud POC — ECS cluster for Chef UI",
+)
+
 secrets_stack = SecretsStack(
     app,
     "CloudPocSecretsStack",
     secret_name=CHEF_UI_ECS_CONFIG.login_secret_name,
+    reader_role_arn=CHEF_UI_ECS_CONFIG.task_execution_role_arn,
     env=env,
     description="Cloud POC — Secrets Manager secrets for Chef UI",
 )
 
-# orchestration_stack = OrchestrationStack(
-#     app,
-#     "CloudPocOrchestrationStack",
-#     env=env,
-#     description="Cloud POC — Hello World Step Functions workflow",
-# )
+orchestration_stack = OrchestrationStack(
+    app,
+    "CloudPocOrchestrationStack",
+    env=env,
+    description="Cloud POC — Hello World Step Functions workflow",
+)
 
-# EcsStack(
-#     app,
-#     "CloudPocEcsStack",
-#     vpc=network_stack.vpc,
-#     security_group=network_stack.security_group,
-#     chef_ui_repository=registry_stack.repositories["chef-ui"],
-#     login_secret=secrets_stack.login_secret,
-#     state_machine_arn=orchestration_stack.state_machine.state_machine_arn,
-#     env=env,
-#     description="Cloud POC — Chef UI ECS Fargate service",
-# )
+EcsStack(
+    app,
+    "CloudPocEcsStack",
+    vpc=network_stack.vpc,
+    security_group=network_stack.security_group,
+    cluster=cluster_stack.cluster,
+    chef_ui_repository=registry_stack.repositories["chef-ui"],
+    login_secret=secrets_stack.login_secret,
+    state_machine_arn=orchestration_stack.state_machine.state_machine_arn,
+    env=env,
+    description="Cloud POC — Chef UI ECS Fargate service",
+)
 
 # ---------------------------------------------------------------------------
 # Global tags — applied to every resource in every stack.

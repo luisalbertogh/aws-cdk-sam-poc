@@ -11,6 +11,11 @@ class OrchestrationConfig:
     log_retention_days: int = 7
     # Removal policy for all resources in this stack
     removal_policy: cdk.RemovalPolicy = cdk.RemovalPolicy.DESTROY
+    # Path to the Step Functions workflow definition (ASL JSON file)
+    # Relative to the config directory
+    workflow_definition_path: str = "step_functions/hello_world_workflow.asl.json"
+    # Name of the Step Functions state machine
+    state_machine_name: str = "HelloWorldStateMachine"
 
 
 CLOUD_ORCHESTRATION_CONFIG = OrchestrationConfig()

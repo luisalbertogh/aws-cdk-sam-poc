@@ -93,14 +93,26 @@ class OrchestrationStack(cdk.Stack):
             )
         )
 
+        # Lambda invocation — allow state machine to invoke Lambda functions
+        self.execution_role.add_to_policy(
+            iam.PolicyStatement(
+                sid="AllowLambdaInvocation",
+                effect=iam.Effect.ALLOW,
+                actions=["lambda:InvokeFunction"],
+                resources=[
+                    f"arn:aws:lambda:{self.region}:{self.account}:function:*"
+                ],
+            )
+        )
+
         # ------------------------------------------------------------------ #
         # State Machine Definition — loaded from ASL JSON template            #
         #                                                                      #
-        # Edit config/step_functions/hello_world_workflow.asl.json to modify  #
-        # the workflow.                                                        #
+        # The workflow definition path is configured in                        #
+        # config/orchestration_config.py                                       #
         # ------------------------------------------------------------------ #
         _asl_path = os.path.join(
-            os.path.dirname(__file__), "..", "config", "step_functions", "hello_world_workflow.asl.json"
+            os.path.dirname(__file__), "..", "config", cfg.workflow_definition_path
         )
 
         # ------------------------------------------------------------------ #
@@ -108,7 +120,8 @@ class OrchestrationStack(cdk.Stack):
         # ------------------------------------------------------------------ #
         self.state_machine = sfn.StateMachine(
             self,
-            "HelloWorldStateMachine",
+            cfg.state_machine_name,
+            state_machine_name=cfg.state_machine_name,
             definition_body=sfn.DefinitionBody.from_file(_asl_path),
             role=self.execution_role,
             tracing_enabled=True,
@@ -127,7 +140,7 @@ class OrchestrationStack(cdk.Stack):
             self,
             "StateMachineArn",
             value=self.state_machine.state_machine_arn,
-            description="ARN of the Hello World state machine",
+            description=f"ARN of the {cfg.state_machine_name} state machine",
         )
         cdk.CfnOutput(
             self,
