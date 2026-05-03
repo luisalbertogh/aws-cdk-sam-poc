@@ -66,7 +66,7 @@ def _render(template: str, **kwargs: str) -> str:
 # Configuration
 # ---------------------------------------------------------------------------
 
-STATE_MACHINE_ARN: str | None = getenv("ORCHESTRATION_STATE_MACHINE_ARN", "arn:aws:states:eu-central-1:741881499996:stateMachine:HelloWorldStateMachine17A15ADF-GcLB0vd0jRgH")
+STATE_MACHINE_ARN: str | None = getenv("ORCHESTRATION_STATE_MACHINE_ARN")
 AWS_REGION: str = getenv("AWS_REGION", "eu-central-1")
 
 logger = get_logger(__name__)

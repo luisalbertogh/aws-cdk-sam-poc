@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       ecr_repository:
-        description: "ECR repository name (e.g. chef-agent, nutritionist-agent, instructor-agent)"
+        description: "ECR repository name (default: chef-ui)"
         required: true
-        default: chef-agent
+        default: chef-ui
         type: string
       
 permissions:
@@ -20,10 +20,11 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: eu-central-1
-  ECR_REGISTRY: 741881499996.dkr.ecr.eu-central-1.amazonaws.com
-  ECR_REPOSITORY: ${{ inputs.ecr_repository || 'chef-agent' }}
+  AWS_REGION: eu-south-2
+  ECR_REGISTRY: 741881499996.dkr.ecr.eu-south-2.amazonaws.com
+  ECR_REPOSITORY: ${{ inputs.ecr_repository || 'chef-ui' }}
   IMAGE_PLATFORM: linux/arm64
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
 
 jobs:
   build-and-push:
@@ -40,7 +41,7 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/agentcore-poc-infra-role
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-oidc-role
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: docker-ecr-push
 
