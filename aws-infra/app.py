@@ -49,7 +49,8 @@ registry_stack = RegistryStack(
 
 # ---------------------------------------------------------------------------
 # ECS Cluster — created before SecretsStack
-# This ensures the cluster exists before any dependent resources are created.
+# This ensures the cluster and execution role exist before any dependent
+# resources are created.
 # ---------------------------------------------------------------------------
 cluster_stack = ClusterStack(
     app,
@@ -63,7 +64,7 @@ secrets_stack = SecretsStack(
     app,
     "CloudPocSecretsStack",
     secret_name=CHEF_UI_ECS_CONFIG.login_secret_name,
-    reader_role_arn=CHEF_UI_ECS_CONFIG.task_execution_role_arn,
+    reader_role_arn=cluster_stack.execution_role.role_arn,
     env=env,
     description="Cloud POC — Secrets Manager secrets for Chef UI",
 )
@@ -80,7 +81,8 @@ EcsStack(
     "CloudPocEcsStack",
     vpc=network_stack.vpc,
     security_group=network_stack.security_group,
-    cluster=cluster_stack.cluster,
+    cluster=cluster_stack.cluster,    
+    execution_role=cluster_stack.execution_role,    
     chef_ui_repository=registry_stack.repositories["chef-ui"],
     login_secret=secrets_stack.login_secret,
     state_machine_arn=orchestration_stack.state_machine.state_machine_arn,

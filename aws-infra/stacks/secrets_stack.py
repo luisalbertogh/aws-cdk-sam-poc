@@ -7,11 +7,10 @@ Design decisions
 - Separate stack: secrets have a RETAIN removal policy and are credentials
   material; owning them in a dedicated stack means they are never accidentally
   destroyed when the ECS stack is torn down or redeployed.
-- Resource policy with explicit ARN principal: the ECS task execution role is
-  imported with mutable=False in EcsStack, which prevents CDK from attaching
-  identity-based policies to it.  Granting access via a resource policy on the
-  secret (add_to_resource_policy) is the correct alternative and keeps the IAM
-  surface minimal.
+- Resource policy with explicit ARN principal: the ECS task execution role ARN
+  is passed as a parameter from ClusterStack. Granting access via a resource
+  policy on the secret (add_to_resource_policy) allows the execution role to
+  read secrets at task startup without requiring identity-based policy changes.
 - Stack ordering: because EcsStack receives the secret construct as a parameter
   and references its ARN, CDK synthesises an automatic cross-stack dependency,
   guaranteeing SecretsStack is fully deployed before EcsStack.

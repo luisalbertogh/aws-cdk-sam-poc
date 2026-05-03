@@ -9,9 +9,9 @@ Design decisions
   the CI pipeline and offers ~20 % better price/performance than x86_64.
 - 0.5 vCPU / 2 GB: matches the requirements spec; adequate for a Chainlit UI
   with low-to-moderate concurrent sessions.
-- Reuse existing ecsTaskExecutionRole: the account already has a default ECS
-  task execution role with ECR pull + CloudWatch Logs write permissions. Reusing
-  it avoids creating a duplicate and keeps IAM surface minimal.
+- ECS task execution role: injected from ClusterStack; manages ECR pulls and
+  CloudWatch Logs writes. Created explicitly as part of the infrastructure
+  rather than relying on account defaults.
 - Public subnet / public IP: the UI is Internet-facing and public subnets with
   an IGW already exist (provisioned by NetworkStack); no NAT Gateway is needed.
 - assign_public_ip=True: required for Fargate tasks in public subnets to reach
@@ -50,6 +50,7 @@ class EcsStack(cdk.Stack):
         vpc: ec2.IVpc,
         security_group: ec2.ISecurityGroup,
         cluster: ecs.ICluster,
+        execution_role: iam.IRole,
         chef_ui_repository: ecr.IRepository,
         login_secret: secretsmanager.ISecret,
         state_machine_arn: str,
@@ -66,24 +67,15 @@ class EcsStack(cdk.Stack):
         )
 
         # -------------------------------------------------------------------
-        # Existing ECS task execution role
+        # ECS task execution role — injected from ClusterStack
         #
-        # The account ships with a default ecsTaskExecutionRole that already
-        # has the AmazonECSTaskExecutionRolePolicy managed policy attached.
-        # We import it by ARN to avoid creating a duplicate.
+        # The execution role is created in ClusterStack and shared across all
+        # services in the cluster. It has permissions to pull ECR images and
+        # write CloudWatch logs via the AmazonECSTaskExecutionRolePolicy.
         # -------------------------------------------------------------------
-        execution_role = iam.Role.from_role_arn(
-            self,
-            "EcsTaskExecutionRole",
-            role_arn=cfg.task_execution_role_arn,
-            # mutable=False prevents CDK from attaching additional policies,
-            # keeping the existing role unchanged.
-            mutable=False,
-        )
-
         # Grant the execution role ECR pull access on the chef-ui repository.
         # grant_pull() adds ecr:BatchGetImage + ecr:GetDownloadUrlForLayer to
-        # the repository resource policy (no change to the role itself).
+        # the repository resource policy.
         chef_ui_repository.grant_pull(execution_role)
 
         # -------------------------------------------------------------------

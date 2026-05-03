@@ -11,6 +11,7 @@ from aws_cdk import assertions
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_ecr as ecr
 from aws_cdk import aws_ecs as ecs
+from aws_cdk import aws_iam as iam
 
 from stacks import EcsStack, SecretsStack
 from config.ecs_config import CHEF_UI_ECS_CONFIG
@@ -61,18 +62,33 @@ def _make_cluster(scope: cdk.Stack, vpc: ec2.Vpc) -> ecs.Cluster:
     )
 
 
+def _make_execution_role(scope: cdk.Stack) -> iam.Role:
+    """Create a minimal ECS task execution role for testing."""
+    return iam.Role(
+        scope,
+        "TestExecutionRole",
+        assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+        managed_policies=[
+            iam.ManagedPolicy.from_aws_managed_policy_name(
+                "service-role/AmazonECSTaskExecutionRolePolicy"
+            )
+        ],
+    )
+
+
 @pytest.fixture(scope="module")
 def template() -> assertions.Template:
     """Synthesise the EcsStack and return the assertions template."""
     app = cdk.App()
     env = cdk.Environment(account="741881499996", region="us-east-1")
 
-    # Helper stack to host VPC, SG, ECS cluster, and ECR repo (cross-stack
-    # refs in tests work by sharing the same CDK App scope).
+    # Helper stack to host VPC, SG, ECS cluster, execution role, and ECR repo
+    # (cross-stack refs in tests work by sharing the same CDK App scope).
     helper = cdk.Stack(app, "HelperStack", env=env)
     vpc = _make_vpc(helper)
     sg = _make_sg(helper, vpc)
     cluster = _make_cluster(helper, vpc)
+    execution_role = _make_execution_role(helper)
     repo = _make_repo(helper)
 
     secrets_stack = SecretsStack(
@@ -88,6 +104,7 @@ def template() -> assertions.Template:
         vpc=vpc,
         security_group=sg,
         cluster=cluster,
+        execution_role=execution_role,
         chef_ui_repository=repo,
         login_secret=secrets_stack.login_secret,
         state_machine_arn="arn:aws:states:us-east-1:741881499996:stateMachine:TestStateMachine",

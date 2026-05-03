@@ -57,16 +57,6 @@ class EcsServiceConfig:
     log_retention_days: int = 7
 
     # ---------------------------------------------------------------------------
-    # IAM
-    # ---------------------------------------------------------------------------
-    # ARN of the existing ECS task execution role that is allowed to pull images
-    # from ECR and write CloudWatch logs.  This role already exists in the account
-    # and is reused to avoid creating a duplicate.
-    task_execution_role_arn: str = (
-        "arn:aws:iam::741881499996:role/ecsTaskExecutionRole"
-    )
-
-    # ---------------------------------------------------------------------------
     # Secrets Manager
     # ---------------------------------------------------------------------------
     # Name of the Secrets Manager secret that holds the Chainlit auth credentials.

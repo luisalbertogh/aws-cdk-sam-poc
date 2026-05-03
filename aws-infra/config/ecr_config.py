@@ -53,7 +53,7 @@ class EcrRepositoryConfig:
     # RETAIN keeps the repository (and all images) when the stack is deleted.
     # Change to "DESTROY" only in ephemeral / dev environments — note that
     # CDK requires the repository to be empty before it can delete it.
-    removal_policy: str = "RETAIN"
+    removal_policy: str = "DESTROY"
 
 
 # ---------------------------------------------------------------------------
