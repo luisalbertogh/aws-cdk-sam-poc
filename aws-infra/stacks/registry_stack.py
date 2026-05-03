@@ -77,5 +77,3 @@ class RegistryStack(cdk.Stack):
                 description=f"URI for {cfg.repository_name}",
                 export_name=f"{self.stack_name}-{logical_prefix}RepositoryUri",
             )
-
-        self.repository = self.repositories["chef-agent"]

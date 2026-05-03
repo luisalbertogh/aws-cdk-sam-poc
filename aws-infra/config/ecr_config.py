@@ -18,7 +18,7 @@ class EcrRepositoryConfig:
     # ---------------------------------------------------------------------------
     # Explicit name so the Cloud Runtime resource policy can reference it
     # by a predictable ARN without cross-stack exports.
-    repository_name: str = "chef-agent"
+    repository_name: str = "chef-ui"
 
     # ---------------------------------------------------------------------------
     # Visibility
