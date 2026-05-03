@@ -56,11 +56,6 @@ def template() -> assertions.Template:
         security_groups=[],
     )
     
-    execution_role = iam.Role.from_role_arn(
-        import_stack, "ImportedExecutionRole",
-        "arn:aws:iam::741881499996:role/test-execution-role",
-    )
-    
     chef_ui_repository = ecr.Repository.from_repository_arn(
         import_stack, "ImportedRepo",
         "arn:aws:ecr:us-east-1:741881499996:repository/test-repo",
@@ -75,13 +70,13 @@ def template() -> assertions.Template:
     )
 
     # Create EcsStack with imported resources
+    # Note: execution_role is now imported by ARN within EcsStack itself
     ecs_stack = EcsStack(
         app,
         "TestEcsStack",
         vpc=vpc,
         security_group=security_group,
         cluster=cluster,
-        execution_role=execution_role,
         chef_ui_repository=chef_ui_repository,
         login_secret=secrets_stack.login_secret,
         state_machine_arn="arn:aws:states:us-east-1:741881499996:stateMachine:TestStateMachine",

@@ -50,7 +50,6 @@ class EcsStack(cdk.Stack):
         vpc: ec2.IVpc,
         security_group: ec2.ISecurityGroup,
         cluster: ecs.ICluster,
-        execution_role: iam.IRole,
         chef_ui_repository: ecr.IRepository,
         login_secret: secretsmanager.ISecret,
         state_machine_arn: str,
@@ -67,12 +66,19 @@ class EcsStack(cdk.Stack):
         )
 
         # -------------------------------------------------------------------
-        # ECS task execution role — injected from ClusterStack
+        # ECS task execution role — imported by ARN
         #
-        # The execution role is created in ClusterStack and shared across all
-        # services in the cluster. It has permissions to pull ECR images and
-        # write CloudWatch logs via the AmazonECSTaskExecutionRolePolicy.
+        # The execution role is created in ClusterStack with a known name.
+        # We import it here by constructing its ARN, avoiding a direct
+        # stack dependency. The role must exist at deploy time or CloudFormation
+        # will fail.
         # -------------------------------------------------------------------
+        execution_role = iam.Role.from_role_arn(
+            self,
+            "ImportedExecutionRole",
+            f"arn:aws:iam::{self.account}:role/chef-ui-ecs-task-execution-role",
+        )
+
         # Grant the execution role ECR pull access on the chef-ui repository.
         # grant_pull() adds ecr:BatchGetImage + ecr:GetDownloadUrlForLayer to
         # the repository resource policy.
