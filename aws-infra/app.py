@@ -40,13 +40,6 @@ StorageStack(
     description="Cloud POC — private encrypted S3 bucket",
 )
 
-registry_stack = RegistryStack(
-    app,
-    "CloudPocRegistryStack",
-    env=env,
-    description="Cloud POC — private ECR repository for chef-assistant images",
-)
-
 # ---------------------------------------------------------------------------
 # ECS Cluster — created before SecretsStack
 # This ensures the cluster and execution role exist before any dependent
@@ -60,11 +53,18 @@ cluster_stack = ClusterStack(
     description="Cloud POC — ECS cluster for Chef UI",
 )
 
+registry_stack = RegistryStack(
+    app,
+    "CloudPocRegistryStack",
+    env=env,
+    description="Cloud POC — private ECR repository for chef-assistant images",
+)
+
 secrets_stack = SecretsStack(
     app,
     "CloudPocSecretsStack",
     secret_name=CHEF_UI_ECS_CONFIG.login_secret_name,
-    # reader_role_arn=cluster_stack.execution_role.role_arn,
+    reader_role_arn=cluster_stack.execution_role.role_arn,
     env=env,
     description="Cloud POC — Secrets Manager secrets for Chef UI",
 )
