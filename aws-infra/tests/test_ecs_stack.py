@@ -81,20 +81,30 @@ def template() -> assertions.Template:
     """
     Synthesise the EcsStack and return the assertions template.
     
-    Creates all test resources in a helper stack first, then creates EcsStack.
-    To avoid cyclic dependencies, helper resources must be in a stack that
-    doesn't depend on EcsStack.
+    To avoid cyclic dependencies, we separate resources into different stacks:
+    - TestHelperStack: VPC, cluster, repo
+    - TestRoleStack: execution_role (separate from repo to break cycle)
+    - TestEcsStack: uses resources from both stacks
+    
+    This prevents the cycle where:
+    - EcsStack needs repo from TestHelperStack (EcsStack → TestHelperStack)
+    - execution_role needs log group permissions (TestRoleStack → TestEcsStack)
+    Since repo and execution_role are in different stacks, no cycle is created.
     """
     app = cdk.App()
     env = cdk.Environment(account="741881499996", region="us-east-1")
 
-    # Create helper stack for test resources FIRST
+    # Create helper stack for VPC, cluster, and repo
     helper_stack = cdk.Stack(app, "TestHelperStack", env=env)
     vpc = _make_vpc(helper_stack)
     sg = _make_sg(helper_stack, vpc)
     cluster = _make_cluster(helper_stack, vpc)
-    execution_role = _make_execution_role(helper_stack)
     repo = _make_repo(helper_stack)
+
+    # Create execution_role in a SEPARATE stack from repo
+    # This breaks the cyclic dependency
+    role_stack = cdk.Stack(app, "TestRoleStack", env=env)
+    execution_role = _make_execution_role(role_stack)
 
     # Create SecretsStack (separate stack)
     secrets_stack = SecretsStack(
@@ -104,7 +114,7 @@ def template() -> assertions.Template:
         env=env,
     )
 
-    # Create EcsStack - passes resources from helper_stack
+    # Create EcsStack - uses resources from multiple stacks
     ecs_stack = EcsStack(
         app,
         "TestEcsStack",
