@@ -241,14 +241,6 @@ class EcsStack(cdk.Stack):
 
         cdk.CfnOutput(
             self,
-            "ClusterName",
-            value=self.cluster.cluster_name,
-            description="Name of the Chef UI ECS cluster",
-            export_name=f"{self.stack_name}-ClusterName",
-        )
-
-        cdk.CfnOutput(
-            self,
             "ServiceName",
             value=self.service.service_name,
             description="Name of the Chef UI ECS Fargate service",
