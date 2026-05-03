@@ -231,15 +231,12 @@ class EcsStack(cdk.Stack):
         # -------------------------------------------------------------------
         # Outputs
         # -------------------------------------------------------------------
-        # Only export values in non-test environments to avoid cyclic dependencies in tests
-        is_test = "Test" in self.stack_name
-        
         cdk.CfnOutput(
             self,
             "TaskRoleName",
             value=self.task_role.role_name,
             description="IAM task role assumed by the chef-ui container",
-            export_name=None if is_test else f"{self.stack_name}-TaskRoleName",
+            export_name=f"{self.stack_name}-TaskRoleName",
         )
 
         cdk.CfnOutput(
@@ -247,7 +244,7 @@ class EcsStack(cdk.Stack):
             "ServiceName",
             value=self.service.service_name,
             description="Name of the Chef UI ECS Fargate service",
-            export_name=None if is_test else f"{self.stack_name}-ServiceName",
+            export_name=f"{self.stack_name}-ServiceName",
         )
 
         cdk.CfnOutput(
@@ -255,5 +252,5 @@ class EcsStack(cdk.Stack):
             "LogGroupName",
             value=log_group.log_group_name,
             description="CloudWatch log group for Chef UI container logs",
-            export_name=None if is_test else f"{self.stack_name}-LogGroupName",
+            export_name=f"{self.stack_name}-LogGroupName",
         )

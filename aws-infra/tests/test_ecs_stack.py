@@ -18,62 +18,8 @@ from config.ecs_config import CHEF_UI_ECS_CONFIG
 
 
 # ---------------------------------------------------------------------------
-# Helpers / fixtures
+# Fixtures
 # ---------------------------------------------------------------------------
-
-
-def _make_vpc(scope: cdk.Stack) -> ec2.Vpc:
-    """Create a minimal VPC with one public subnet for testing."""
-    return ec2.Vpc(
-        scope,
-        "TestVpc",
-        ip_addresses=ec2.IpAddresses.cidr("10.0.0.0/27"),
-        max_azs=2,
-        nat_gateways=0,
-        subnet_configuration=[
-            ec2.SubnetConfiguration(
-                name="Public",
-                subnet_type=ec2.SubnetType.PUBLIC,
-                cidr_mask=28,
-            )
-        ],
-    )
-
-
-def _make_sg(scope: cdk.Stack, vpc: ec2.Vpc) -> ec2.SecurityGroup:
-    """Create a minimal security group for testing."""
-    sg = ec2.SecurityGroup(scope, "TestSg", vpc=vpc, allow_all_outbound=True)
-    sg.add_ingress_rule(ec2.Peer.ipv4("0.0.0.0/0"), ec2.Port.tcp(8080))
-    return sg
-
-
-def _make_repo(scope: cdk.Stack) -> ecr.Repository:
-    """Create a minimal ECR repository for testing."""
-    return ecr.Repository(scope, "TestRepo")
-
-
-def _make_cluster(scope: cdk.Stack, vpc: ec2.Vpc) -> ecs.Cluster:
-    """Create a minimal ECS cluster for testing."""
-    return ecs.Cluster(
-        scope,
-        "TestCluster",
-        cluster_name="test-cluster",
-        vpc=vpc,
-    )
-
-
-def _make_execution_role(scope: cdk.Stack) -> iam.Role:
-    """Create a minimal ECS task execution role for testing."""
-    return iam.Role(
-        scope,
-        "TestExecutionRole",
-        assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
-        managed_policies=[
-            iam.ManagedPolicy.from_aws_managed_policy_name(
-                "service-role/AmazonECSTaskExecutionRolePolicy"
-            )
-        ],
-    )
 
 
 @pytest.fixture(scope="module")
@@ -81,23 +27,14 @@ def template() -> assertions.Template:
     """
     Synthesise the EcsStack and return the assertions template.
     
-    Creates helper resources (VPC, cluster, execution_role, repo) in a separate
-    stack. EcsStack now conditionally disables export_name for outputs in test
-    environments (detected by "Test" in stack name), which prevents cross-stack
-    dependencies from being created.
+    Uses imported/mocked resources (vpc, cluster, execution_role, repo) that don't
+    create actual CloudFormation resources. This avoids cross-stack dependencies since
+    imported resources don't establish CloudFormation relationships.
     """
     app = cdk.App()
     env = cdk.Environment(account="741881499996", region="us-east-1")
 
-    # Create helper stack for all test resources
-    helper_stack = cdk.Stack(app, "TestHelperStack", env=env)
-    vpc = _make_vpc(helper_stack)
-    sg = _make_sg(helper_stack, vpc)
-    cluster = _make_cluster(helper_stack, vpc)
-    execution_role = _make_execution_role(helper_stack)
-    repo = _make_repo(helper_stack)
-
-    # Create SecretsStack (separate stack)
+    # Create SecretsStack first (separate stack)
     secrets_stack = SecretsStack(
         app,
         "TestSecretsStack",
@@ -105,15 +42,36 @@ def template() -> assertions.Template:
         env=env,
     )
 
-    # Create EcsStack - uses resources from helper_stack
+    # Import/mock resources that don't create CloudFormation resources
+    vpc = ec2.Vpc.from_vpc_attributes(
+        app, "ImportedVpc",
+        vpc_id="vpc-12345",
+        availability_zones=["us-east-1a", "us-east-1b"],
+        public_subnet_ids=["subnet-111", "subnet-222"],
+    )
+
+    # Create EcsStack with imported resources
     ecs_stack = EcsStack(
         app,
         "TestEcsStack",
         vpc=vpc,
-        security_group=sg,
-        cluster=cluster,
-        execution_role=execution_role,
-        chef_ui_repository=repo,
+        security_group=ec2.SecurityGroup.from_security_group_id(
+            app, "ImportedSg", "sg-12345"
+        ),
+        cluster=ecs.Cluster.from_cluster_attributes(
+            app, "ImportedCluster",
+            cluster_name="test-cluster",
+            vpc=vpc,
+            security_groups=[],
+        ),
+        execution_role=iam.Role.from_role_arn(
+            app, "ImportedExecutionRole",
+            "arn:aws:iam::741881499996:role/test-execution-role",
+        ),
+        chef_ui_repository=ecr.Repository.from_repository_arn(
+            app, "ImportedRepo",
+            "arn:aws:ecr:us-east-1:741881499996:repository/test-repo",
+        ),
         login_secret=secrets_stack.login_secret,
         state_machine_arn="arn:aws:states:us-east-1:741881499996:stateMachine:TestStateMachine",
         env=env,
