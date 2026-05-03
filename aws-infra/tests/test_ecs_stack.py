@@ -27,14 +27,46 @@ def template() -> assertions.Template:
     """
     Synthesise the EcsStack and return the assertions template.
     
-    Uses imported/mocked resources (vpc, cluster, execution_role, repo) that don't
-    create actual CloudFormation resources. This avoids cross-stack dependencies since
-    imported resources don't establish CloudFormation relationships.
+    Uses imported/mocked resources (vpc, cluster, execution_role, repo) created
+    within a helper stack scope. Imported resources don't create CloudFormation
+    resources, so they avoid cross-stack dependencies.
     """
     app = cdk.App()
     env = cdk.Environment(account="741881499996", region="us-east-1")
 
-    # Create SecretsStack first (separate stack)
+    # Create a helper stack just for imported resources (required by CDK)
+    import_stack = cdk.Stack(app, "ImportStack", env=env)
+    
+    # Create imported resources within the import_stack scope
+    vpc = ec2.Vpc.from_vpc_attributes(
+        import_stack, "ImportedVpc",
+        vpc_id="vpc-12345",
+        availability_zones=["us-east-1a", "us-east-1b"],
+        public_subnet_ids=["subnet-111", "subnet-222"],
+    )
+    
+    security_group = ec2.SecurityGroup.from_security_group_id(
+        import_stack, "ImportedSg", "sg-12345"
+    )
+    
+    cluster = ecs.Cluster.from_cluster_attributes(
+        import_stack, "ImportedCluster",
+        cluster_name="test-cluster",
+        vpc=vpc,
+        security_groups=[],
+    )
+    
+    execution_role = iam.Role.from_role_arn(
+        import_stack, "ImportedExecutionRole",
+        "arn:aws:iam::741881499996:role/test-execution-role",
+    )
+    
+    chef_ui_repository = ecr.Repository.from_repository_arn(
+        import_stack, "ImportedRepo",
+        "arn:aws:ecr:us-east-1:741881499996:repository/test-repo",
+    )
+
+    # Create SecretsStack
     secrets_stack = SecretsStack(
         app,
         "TestSecretsStack",
@@ -42,36 +74,15 @@ def template() -> assertions.Template:
         env=env,
     )
 
-    # Import/mock resources that don't create CloudFormation resources
-    vpc = ec2.Vpc.from_vpc_attributes(
-        app, "ImportedVpc",
-        vpc_id="vpc-12345",
-        availability_zones=["us-east-1a", "us-east-1b"],
-        public_subnet_ids=["subnet-111", "subnet-222"],
-    )
-
     # Create EcsStack with imported resources
     ecs_stack = EcsStack(
         app,
         "TestEcsStack",
         vpc=vpc,
-        security_group=ec2.SecurityGroup.from_security_group_id(
-            app, "ImportedSg", "sg-12345"
-        ),
-        cluster=ecs.Cluster.from_cluster_attributes(
-            app, "ImportedCluster",
-            cluster_name="test-cluster",
-            vpc=vpc,
-            security_groups=[],
-        ),
-        execution_role=iam.Role.from_role_arn(
-            app, "ImportedExecutionRole",
-            "arn:aws:iam::741881499996:role/test-execution-role",
-        ),
-        chef_ui_repository=ecr.Repository.from_repository_arn(
-            app, "ImportedRepo",
-            "arn:aws:ecr:us-east-1:741881499996:repository/test-repo",
-        ),
+        security_group=security_group,
+        cluster=cluster,
+        execution_role=execution_role,
+        chef_ui_repository=chef_ui_repository,
         login_secret=secrets_stack.login_secret,
         state_machine_arn="arn:aws:states:us-east-1:741881499996:stateMachine:TestStateMachine",
         env=env,
