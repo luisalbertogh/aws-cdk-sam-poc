@@ -10,6 +10,7 @@ import pytest
 from aws_cdk import assertions
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_ecr as ecr
+from aws_cdk import aws_ecs as ecs
 
 from stacks import EcsStack, SecretsStack
 from config.ecs_config import CHEF_UI_ECS_CONFIG
@@ -50,17 +51,28 @@ def _make_repo(scope: cdk.Stack) -> ecr.Repository:
     return ecr.Repository(scope, "TestRepo")
 
 
+def _make_cluster(scope: cdk.Stack, vpc: ec2.Vpc) -> ecs.Cluster:
+    """Create a minimal ECS cluster for testing."""
+    return ecs.Cluster(
+        scope,
+        "TestCluster",
+        cluster_name="test-cluster",
+        vpc=vpc,
+    )
+
+
 @pytest.fixture(scope="module")
 def template() -> assertions.Template:
     """Synthesise the EcsStack and return the assertions template."""
     app = cdk.App()
     env = cdk.Environment(account="741881499996", region="us-east-1")
 
-    # Helper stack to host VPC, SG, and ECR repo (cross-stack refs in tests
-    # work by sharing the same CDK App scope).
+    # Helper stack to host VPC, SG, ECS cluster, and ECR repo (cross-stack
+    # refs in tests work by sharing the same CDK App scope).
     helper = cdk.Stack(app, "HelperStack", env=env)
     vpc = _make_vpc(helper)
     sg = _make_sg(helper, vpc)
+    cluster = _make_cluster(helper, vpc)
     repo = _make_repo(helper)
 
     secrets_stack = SecretsStack(
@@ -75,22 +87,13 @@ def template() -> assertions.Template:
         "TestEcsStack",
         vpc=vpc,
         security_group=sg,
+        cluster=cluster,
         chef_ui_repository=repo,
         login_secret=secrets_stack.login_secret,
         state_machine_arn="arn:aws:states:us-east-1:741881499996:stateMachine:TestStateMachine",
         env=env,
     )
     return assertions.Template.from_stack(ecs_stack)
-
-
-# ---------------------------------------------------------------------------
-# ECS Cluster
-# ---------------------------------------------------------------------------
-
-
-class TestEcsCluster:
-    def test_cluster_is_created(self, template: assertions.Template) -> None:
-        template.resource_count_is("AWS::ECS::Cluster", 1)
 
 
 # ---------------------------------------------------------------------------
