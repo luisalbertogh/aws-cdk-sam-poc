@@ -23,6 +23,7 @@ env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "24"
   LAMBDA_FOLDER: ${{ github.event.inputs.lambda_folder || 'OFFAPI' }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
 
 jobs:
   test:
@@ -70,7 +71,7 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37  # v6.1.0
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-oidc-role
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-oidc-role
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: cdk-infra-plan
           audience: sts.amazonaws.com
