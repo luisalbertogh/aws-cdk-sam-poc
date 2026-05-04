@@ -77,19 +77,19 @@ secrets_stack.add_dependency(cluster_stack)
 #     description="Cloud POC — Hello World Step Functions workflow",
 # )
 
-# EcsStack(
-#     app,
-#     "CloudPocEcsStack",
-#     vpc=network_stack.vpc,
-#     security_group=network_stack.security_group,
-#     cluster=cluster_stack.cluster,
-#     chef_ui_repository=registry_stack.repositories["chef-ui"],
-#     login_secret=secrets_stack.login_secret,
-#     #state_machine_arn=orchestration_stack.state_machine.state_machine_arn,
-#     state_machine_arn="",
-#     env=env,
-#     description="Cloud POC — Chef UI ECS Fargate service",
-# )
+EcsStack(
+    app,
+    "CloudPocEcsStack",
+    vpc=network_stack.vpc,
+    security_group=network_stack.security_group,
+    cluster=cluster_stack.cluster,
+    chef_ui_repository=registry_stack.repositories["chef-ui"],
+    login_secret=secrets_stack.login_secret,
+    #state_machine_arn=orchestration_stack.state_machine.state_machine_arn,
+    state_machine_arn="",
+    env=env,
+    description="Cloud POC — Chef UI ECS Fargate service",
+)
 
 # ---------------------------------------------------------------------------
 # Global tags — applied to every resource in every stack.
