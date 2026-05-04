@@ -64,7 +64,6 @@ secrets_stack = SecretsStack(
     app,
     "CloudPocSecretsStack",
     secret_name=CHEF_UI_ECS_CONFIG.login_secret_name,
-    reader_role_arn=CHEF_UI_ECS_CONFIG.execution_role_arn,
     env=env,
     description="Cloud POC — Secrets Manager secrets for Chef UI",
 )

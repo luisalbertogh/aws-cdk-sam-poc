@@ -65,10 +65,6 @@ class EcsServiceConfig:
     # CHEF_UI_PASSWORD.
     login_secret_name: str = "chef-ui-login-passwords"
 
-    # ARN of the IAM role that has permissions to read the login secret. This is
-    # the execution role of the ECS task, which is created in ClusterStack.  We set this value after both stacks are instantiated in app.py to avoid circular
-    execution_role_arn: str = "arn:aws:iam::741881499996:role/chef-ui-ecs-task-execution-role"
-
     # ---------------------------------------------------------------------------
     # Removal policy
     # ---------------------------------------------------------------------------

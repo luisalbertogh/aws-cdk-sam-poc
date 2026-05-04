@@ -221,18 +221,18 @@ class EcsStack(cdk.Stack):
         # deployed into the public subnets; assign_public_ip=True allows the
         # task to reach ECR / CloudWatch without a NAT Gateway.
         # -------------------------------------------------------------------
-        self.service = ecs.FargateService(
-            self,
-            "ChefUiService",
-            cluster=self.cluster,
-            task_definition=self.task_definition,
-            desired_count=cfg.desired_count,
-            assign_public_ip=True,
-            security_groups=[security_group],
-            vpc_subnets=ec2.SubnetSelection(
-                subnet_type=ec2.SubnetType.PUBLIC,
-            ),
-        )
+        # self.service = ecs.FargateService(
+        #     self,
+        #     "ChefUiService",
+        #     cluster=self.cluster,
+        #     task_definition=self.task_definition,
+        #     desired_count=cfg.desired_count,
+        #     assign_public_ip=True,
+        #     security_groups=[security_group],
+        #     vpc_subnets=ec2.SubnetSelection(
+        #         subnet_type=ec2.SubnetType.PUBLIC,
+        #     ),
+        # )
 
         # -------------------------------------------------------------------
         # Outputs
@@ -245,13 +245,13 @@ class EcsStack(cdk.Stack):
             export_name=f"{self.stack_name}-TaskRoleName",
         )
 
-        cdk.CfnOutput(
-            self,
-            "ServiceName",
-            value=self.service.service_name,
-            description="Name of the Chef UI ECS Fargate service",
-            export_name=f"{self.stack_name}-ServiceName",
-        )
+        # cdk.CfnOutput(
+        #     self,
+        #     "ServiceName",
+        #     value=self.service.service_name,
+        #     description="Name of the Chef UI ECS Fargate service",
+        #     export_name=f"{self.stack_name}-ServiceName",
+        # )
 
         cdk.CfnOutput(
             self,
