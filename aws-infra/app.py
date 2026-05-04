@@ -64,10 +64,11 @@ secrets_stack = SecretsStack(
     app,
     "CloudPocSecretsStack",
     secret_name=CHEF_UI_ECS_CONFIG.login_secret_name,
-    #reader_role_arn=cluster_stack.execution_role.role_arn,
+    reader_role_arn=CHEF_UI_ECS_CONFIG.execution_role_arn,
     env=env,
     description="Cloud POC — Secrets Manager secrets for Chef UI",
 )
+secrets_stack.add_dependency(cluster_stack)
 
 # orchestration_stack = OrchestrationStack(
 #     app,
@@ -84,7 +85,8 @@ secrets_stack = SecretsStack(
 #     cluster=cluster_stack.cluster,
 #     chef_ui_repository=registry_stack.repositories["chef-ui"],
 #     login_secret=secrets_stack.login_secret,
-#     state_machine_arn=orchestration_stack.state_machine.state_machine_arn,
+#     #state_machine_arn=orchestration_stack.state_machine.state_machine_arn,
+#     state_machine_arn="",
 #     env=env,
 #     description="Cloud POC — Chef UI ECS Fargate service",
 # )
