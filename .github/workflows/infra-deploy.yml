@@ -72,9 +72,9 @@ jobs:
         working-directory: aws-infra
         run: pip install -r requirements-dev.txt
 
-      # - name: Run unit tests
-      #   working-directory: aws-infra
-      #   run: pytest tests/ -v
+      - name: Run unit tests
+        working-directory: aws-infra
+        run: pytest tests/ -v
 
       - name: CDK synth (no-deploy check)
         working-directory: aws-infra
