@@ -1,0 +1,19 @@
+[project]
+name = "cheffapp"
+version = "0.1.0"
+description = "Cheff application"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic==2.12.5",
+    "aws-lambda-powertools==3.28.0"
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest==9.0.3",
+    "pytest-cov==7.1.0"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
