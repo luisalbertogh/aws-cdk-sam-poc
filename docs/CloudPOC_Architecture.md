@@ -20,7 +20,7 @@ The infrastructure is organized into seven CDK stacks and two SAM-deployed Lambd
 1. **CloudPocNetworkStack**: Provides VPC networking infrastructure
 2. **CloudPocStorageStack**: Provisions encrypted S3 bucket storage
 3. **CloudPocClusterStack**: Creates ECS Fargate cluster (infrastructure ready)
-4. **CloudPocRegistryStack**: Creates ECR repositories for container images
+4. **CloudPocRegistryStack**: Creates ECR repository for container images
 5. **CloudPocSecretsStack**: Manages application secrets via AWS Secrets Manager
 6. **CloudPocOrchestrationStack**: Provisions Step Functions state machine for workflow orchestration
 7. **CloudPocApiStack**: Provides API Gateway for HTTP access to Step Functions
@@ -29,12 +29,6 @@ The infrastructure is organized into seven CDK stacks and two SAM-deployed Lambd
 
 1. **ChefApp Lambda**: Mock chef agent that provides dish suggestions
 2. **OFFAPI Lambda**: Invokes Open Food Facts API to retrieve nutritional information
-
-### Inactive Stacks (Defined but Commented Out)
-
-8. **CloudPocEcsStack**: Deploys Chef UI as an ECS Fargate service (infrastructure ready but not deployed)
-
-The architecture diagram above illustrates all components, with active stacks highlighted in green and inactive (commented-out) stacks shown in gray with dashed borders.
 
 ## Component Architecture
 
@@ -102,21 +96,18 @@ nat_gateways: 0  # No NAT Gateway needed
 **Purpose**: Hosts Docker container images for the application components.
 
 **Components**:
-- **ECR Registry** containing four repositories:
+- **ECR Registry** containing one repository:
   - `chef-ui`: Chef UI Chainlit application
-  - `chef-agent`: Chef agent service
-  - `nutritionist-agent`: Nutritionist agent service
-  - `instructor-agent`: Instructor agent service
 
 **Design Decisions**:
-- **Explicit repository names**: Required for IAM policies and resource references
+- **Explicit repository name**: Required for IAM policies and resource references
 - **Tag immutability**: Prevents overwrite of existing tags (security best practice)
 - **Image scan on push**: Automatic CVE scanning at no extra cost
 - **Lifecycle policy**: Untagged images expire after 1 day (cleanup)
 - **RETAIN removal policy**: Prevents accidental image loss on stack deletion
 
 **Security Features**:
-- Private repositories (no public access)
+- Private repository (no public access)
 - Image scanning on push
 - Tag immutability enabled
 - Automatic lifecycle management
@@ -131,7 +122,7 @@ nat_gateways: 0  # No NAT Gateway needed
 
 **Design Decisions**:
 - **Separate stack**: Secrets have RETAIN policy to prevent accidental deletion
-- **Resource policy**: Grants ECS task execution role read access
+- **Resource policy**: Grants appropriate read access to services
 - **Manual population**: Secret created empty; values populated post-deployment
 - **RETAIN removal policy**: Credentials never destroyed on stack teardown
 
@@ -302,41 +293,6 @@ nat_gateways: 0  # No NAT Gateway needed
 - CloudWatch Log Group: 7-day retention
 - Environment Variables: OFF_PROD_URL, OFF_STAGING_URL
 
-### 8. ECS Stack (CloudPocEcsStack) - **COMMENTED OUT**
-
-### 8. ECS Stack (CloudPocEcsStack) - **COMMENTED OUT**
-
-**Purpose**: Runs the Chef UI Chainlit application as a containerized service.
-
-**Components**:
-- **ECS Fargate Cluster**: Serverless compute platform (already provisioned by ClusterStack)
-- **ECS Service**: Chef UI service with the following specifications:
-  - **Platform**: ARM64 architecture
-  - **Resources**: 0.5 vCPU (512 CPU units), 2 GB RAM
-  - **Desired Count**: 1 task
-  - **Network**: Public subnet with public IP assignment
-  - **Container Port**: 8080
-- **CloudWatch Log Group**: `/aws/ecs/chef-ui` (7-day retention)
-- **IAM Task Role**: `chef-ui-task-role` with Step Functions permissions
-- **IAM Task Execution Role**: Reuses existing `ecsTaskExecutionRole`
-
-**Design Decisions**:
-- **Fargate serverless**: No EC2 instances to manage
-- **ARM64 architecture**: ~20% better price/performance than x86_64
-- **Public subnet + public IP**: Required for internet access without NAT Gateway
-- **Reuse existing execution role**: Avoids IAM duplication
-- **No load balancer**: Single task sufficient for POC (ALB can be added later)
-- **Step Functions integration**: Task role allows starting and monitoring state machine executions
-
-**Current Status**: Defined in code but commented out in `app.py` (lines 86-97)
-
-**Dependencies**:
-- NetworkStack (VPC, Security Group)
-- ClusterStack (ECS Cluster)
-- RegistryStack (chef-ui ECR repository)
-- SecretsStack (Chainlit credentials)
-- OrchestrationStack (Step Functions ARN)
-
 ## Deployment Architecture
 
 ### Current Active Infrastructure
@@ -365,10 +321,7 @@ Supporting Infrastructure:
 ├─ S3 Bucket (encrypted, private)
 ├─ ECS Cluster (ready, no services)
 ├─ ECR Registry
-│  ├─ chef-ui repository
-│  ├─ chef-agent repository
-│  ├─ nutritionist-agent repository
-│  └─ instructor-agent repository
+│  └─ chef-ui repository
 └─ Secrets Manager
    └─ chef-ui-login-passwords
 ```
@@ -481,9 +434,11 @@ Response:
 - **Lambda Functions**: Auto-scales to handle concurrent invocations (default: 1,000 concurrent)
 - **VPC**: Sufficient IP space for current workload; can be expanded if needed
 
-**Scalability Enhancements** (if ECS stack is enabled):
-- ECS Service can scale horizontally with auto-scaling policies
-- Application Load Balancer can distribute traffic across multiple tasks
+**Scalability Enhancements (Future Options)**:
+- Deploy container-based services if UI frontend needed
+- Add Application Load Balancer for traffic distribution
+- Implement auto-scaling policies for compute resources
+- Use CloudFront CDN for global distribution
 
 ### Performance
 
@@ -609,13 +564,14 @@ Response:
 
 ## Next Steps
 
-1. **Enable ECS Stack**: Uncomment EcsStack in `app.py` to deploy Chef UI
-2. **Implement Caching**: Add ElastiCache or DynamoDB for API response caching
-3. **Add Authentication**: Replace API Key with Amazon Cognito
-4. **Monitoring Dashboard**: Create CloudWatch dashboard for metrics visualization
-5. **CI/CD Pipeline**: Implement GitHub Actions for automated deployments
-6. **Multi-Region**: Extend to multiple AWS regions for disaster recovery
-7. **Load Testing**: Perform load testing to validate scalability assumptions
+1. **Implement Monitoring and Alerting**: Create dashboards and configure alarms
+2. **Add Caching**: Implement ElastiCache or DynamoDB for API response caching
+3. **Implement Enhanced Authentication**: Replace API Key with Amazon Cognito
+4. **Add CDN**: Deploy CloudFront for global distribution and improved performance
+5. **Monitoring Dashboard**: Create CloudWatch dashboard for metrics visualization
+6. **CI/CD Pipeline**: Implement GitHub Actions for automated deployments
+7. **Multi-Region**: Extend to multiple AWS regions for disaster recovery
+8. **Load Testing**: Perform load testing to validate scalability assumptions
 
 ## References
 
@@ -655,53 +611,12 @@ CI/CD (GitHub Actions)
 
 1. **CI/CD Pipeline** (GitHub Actions):
    - Builds Docker images
-   - Pushes images to ECR repositories
+   - Pushes images to ECR repository
    - Images are scanned for vulnerabilities on push
 
 2. **Storage**:
    - S3 bucket available for application data storage
    - All access must use SSL/TLS
-
-### Future State (With ECS and Orchestration Stacks)
-
-1. **User Request Flow**:
-   - Internet users → Internet Gateway → Public Subnet → ECS Fargate Task
-   - ECS task serves Chef UI Chainlit application
-
-2. **Application Startup**:
-   - ECS task execution role pulls image from ECR
-   - Task reads credentials from Secrets Manager
-   - Task starts on assigned public IP
-
-3. **Workflow Execution**:
-   - Chef UI invokes Step Functions state machine
-   - State machine executes workflow steps
-   - Execution logs sent to CloudWatch
-
-4. **Logging**:
-   - ECS tasks → CloudWatch Logs (`/aws/ecs/chef-ui`)
-   - Step Functions → CloudWatch Logs (state machine log group)
-
-## Key Workflows
-
-### Sequence: ECS Task Startup (When Enabled)
-
-```
-[GitHub Actions] → [ECR Repository]: Push Docker image
-[ECS Service] → [ECR Repository]: Pull image
-[ECS Service] → [Secrets Manager]: Read credentials
-[ECS Service] → [Public Subnet]: Start task with public IP
-[ECS Task] → [CloudWatch Logs]: Send application logs
-```
-
-### Sequence: Step Functions Invocation (When Enabled)
-
-```
-[Chef UI Task] → [Step Functions]: Start execution (with input)
-[Step Functions] → [Workflow Steps]: Execute state machine
-[Step Functions] → [CloudWatch Logs]: Log execution details
-[Step Functions] → [Chef UI Task]: Return execution status
-```
 
 ## Non-Functional Requirements Analysis
 
@@ -711,40 +626,35 @@ CI/CD (GitHub Actions)
 - Multi-AZ VPC provides foundation for horizontal scaling
 - ECR supports unlimited image pulls
 - S3 scales automatically
-
-**When ECS Stack is Enabled**:
-- ECS Fargate auto-scales tasks based on demand
-- Stateless container design enables horizontal scaling
-- Can add Application Load Balancer for multi-task distribution
-- Step Functions supports high throughput (thousands of concurrent executions)
+- API Gateway auto-scales to handle request volume
+- Lambda functions auto-scale with concurrent invocations
+- Step Functions support high throughput
 
 **Limitations**:
-- Single ECS task (desired_count=1) is not highly available
-- No auto-scaling policies defined
 - VPC is small (/27) - only 32 IPs total
+- API Gateway throttled at 10 req/s by default
 
 **Recommendations**:
-- Increase desired task count to 2+ for HA
-- Add Application Load Balancer
-- Implement auto-scaling policies
 - Consider larger VPC if more services are added
+- Adjust API Gateway throttling limits based on expected load
+- Monitor Lambda concurrency limits
 
 ### Performance
 
 **Network**:
 - Multi-AZ deployment reduces latency for geographically distributed users
 - Direct internet connectivity (no NAT Gateway) minimizes network hops
-- Fargate networking (awsvpc mode) provides dedicated ENI per task
+- API Gateway provides low-latency HTTP access
 
 **Compute**:
-- ARM64 architecture offers better price/performance
-- 0.5 vCPU / 2GB RAM adequate for low-moderate load
-- Fargate removes hypervisor overhead
+- Lambda ARM64 architecture offers better price/performance
+- Step Functions provide efficient workflow orchestration
+- Serverless architecture eliminates infrastructure overhead
 
 **Optimization Opportunities**:
 - Add CloudFront CDN for static assets
-- Implement caching layer (ElastiCache)
-- Use read replicas for database (if added)
+- Implement caching layer (ElastiCache or DynamoDB)
+- Use Lambda provisioned concurrency to eliminate cold starts
 
 ### Security
 
@@ -760,13 +670,12 @@ CI/CD (GitHub Actions)
 - ✅ S3 SSL enforcement
 - ✅ S3 block public access
 - ✅ Secrets Manager for credentials
-- ✅ ECR private repositories
+- ✅ ECR private repository
 - ✅ ECR image scanning
 
 **IAM Security**:
 - ✅ Least-privilege IAM roles
 - ✅ Resource-based policies (Secrets Manager)
-- ✅ Task execution role reuse (minimizes IAM surface)
 - ✅ Explicit role permissions (no wildcards)
 
 **Container Security**:
@@ -792,14 +701,14 @@ CI/CD (GitHub Actions)
 - ✅ Multi-AZ VPC (spans 2 AZs)
 - ✅ ECR lifecycle policy prevents storage exhaustion
 - ✅ CloudWatch logging enabled
-- ⚠️ Single ECS task (no redundancy when enabled)
-- ❌ No health checks defined
-- ❌ No auto-recovery mechanisms
+- ✅ Lambda retry logic with exponential backoff
+- ✅ Step Functions error handling with catch blocks
 
 **Availability**:
-- **Current SLA**: N/A (no compute running)
-- **With single ECS task**: ~99.5% (single point of failure)
-- **With multi-task + ALB**: ~99.9% (recommended)
+- **API Gateway**: 99.95% SLA
+- **Lambda**: 99.95% SLA
+- **Step Functions**: 99.9% SLA
+- **S3**: 99.99% availability
 
 **Disaster Recovery**:
 - **RTO (Recovery Time Objective)**: ~5-10 minutes (redeploy from IaC)
@@ -827,7 +736,7 @@ CI/CD (GitHub Actions)
 
 **Operational Visibility**:
 - ✅ CloudWatch logging integrated
-- ✅ X-Ray tracing enabled (Step Functions)
+- ✅ X-Ray tracing enabled (API Gateway, Step Functions, Lambda)
 - ⚠️ No centralized dashboard
 - ⚠️ No alerting configured
 
@@ -843,16 +752,17 @@ aws-infra/
 ├── stacks/                 # Stack definitions
 │   ├── network_stack.py
 │   ├── storage_stack.py
+│   ├── cluster_stack.py
 │   ├── registry_stack.py
 │   ├── secrets_stack.py
 │   ├── orchestration_stack.py
-│   └── ecs_stack.py
+│   └── api_stack.py
 └── config/                 # Configuration modules
     ├── network_config.py
     ├── s3_config.py
     ├── ecr_config.py
-    ├── ecs_config.py
-    └── orchestration_config.py
+    ├── orchestration_config.py
+    └── api_config.py
 ```
 
 **Maintainability Strengths**:
@@ -869,170 +779,109 @@ aws-infra/
 
 ## Phased Development
 
-### Phase 1: Foundation (Current - ACTIVE)
+### Current State: Serverless API Architecture (ACTIVE)
 
-**Objective**: Establish core infrastructure foundation.
+**Objective**: Serverless API-driven architecture with workflow orchestration.
 
 **Deployed Components**:
 - ✅ VPC with networking (NetworkStack)
 - ✅ S3 storage (StorageStack)
-- ✅ ECR repositories (RegistryStack)
+- ✅ ECR repository (RegistryStack)
 - ✅ Secrets management (SecretsStack)
+- ✅ ECS Cluster infrastructure (ClusterStack - ready for future use)
+- ✅ Step Functions workflow orchestration (OrchestrationStack)
+- ✅ API Gateway with REST endpoint (ApiStack)
+- ✅ Lambda functions for business logic (SAM-deployed)
 
 **Status**: Fully deployed and operational
 
+**Architecture Pattern**: API Gateway → Step Functions → Lambda → External APIs
+
 **Benefits**:
-- Infrastructure foundation ready
-- CI/CD can push images to ECR
-- Security and networking baseline established
+- Fully serverless, pay-per-use model
+- No infrastructure management required
+- Automatic scaling based on demand
+- Low operational overhead
+- Cost-optimized (~$6/month)
 
-### Phase 2: Application Runtime (Planned - COMMENTED OUT)
+### Future Enhancement Options
 
-**Objective**: Deploy the Chef UI application and workflow orchestration.
+**Option 1: Add Container-Based UI**:
+- Deploy Chef UI as ECS Fargate service
+- Connect UI to existing Step Functions workflow
+- Estimated additional cost: ~$10-15/month
 
-**Components to Enable**:
-- Uncomment OrchestrationStack (lines 57-62 in `app.py`)
-- Uncomment EcsStack (lines 64-75 in `app.py`)
-- Populate Secrets Manager secret with credentials
+**Option 2: Enhanced Observability**:
+- Add CloudWatch dashboards
+- Configure CloudWatch alarms
+- Implement SNS notifications
+- Minimal cost increase
 
-**Steps to Activate**:
-
-1. **Populate Secrets**:
-   ```bash
-   aws secretsmanager put-secret-value \
-     --secret-id chef-ui-login-passwords \
-     --secret-string '{
-       "CHAINLIT_AUTH_SECRET": "<generate-random-value>",
-       "CHEF_UI_USER": "<username>",
-       "CHEF_UI_PASSWORD": "<password>"
-     }'
-   ```
-
-2. **Uncomment Stacks in app.py**:
-   ```python
-   orchestration_stack = OrchestrationStack(
-       app,
-       "CloudPocOrchestrationStack",
-       env=env,
-       description="Cloud POC — Hello World Step Functions workflow",
-   )
-
-   EcsStack(
-       app,
-       "CloudPocEcsStack",
-       vpc=network_stack.vpc,
-       security_group=network_stack.security_group,
-       chef_ui_repository=registry_stack.repositories["chef-ui"],
-       login_secret=secrets_stack.login_secret,
-       state_machine_arn=orchestration_stack.state_machine.state_machine_arn,
-       env=env,
-       description="Cloud POC — Chef UI ECS Fargate service",
-   )
-   ```
-
-3. **Deploy**:
-   ```bash
-   cdk deploy CloudPocOrchestrationStack CloudPocEcsStack
-   ```
-
-4. **Push Docker Image**:
-   ```bash
-   # Build and push chef-ui image
-   docker build -t <account>.dkr.ecr.<region>.amazonaws.com/chef-ui:latest ./chef-ui
-   docker push <account>.dkr.ecr.<region>.amazonaws.com/chef-ui:latest
-   ```
-
-**Outcome**: Fully functional Chef UI application accessible via public IP
-
-### Migration Path
-
-**Phase 1 → Phase 2 Migration**:
-- No infrastructure changes required in Phase 1 stacks
-- Phase 2 stacks reference Phase 1 resources via cross-stack references
-- Zero downtime (no existing services to impact)
-- Rollback: Simply delete Phase 2 stacks; Phase 1 remains intact
-
-**Future Phases** (Potential):
-- **Phase 3**: Add Application Load Balancer, increase task count, implement auto-scaling
-- **Phase 4**: Add CloudFront CDN, WAF, Route 53 DNS
-- **Phase 5**: Add database layer, caching, monitoring/alerting
+**Option 3: High Availability & Performance**:
+- Add CloudFront CDN
+- Implement caching layer
+- Add Application Load Balancer (if ECS deployed)
+- Estimated additional cost: ~$20-30/month
 
 ## Risks and Mitigations
 
-### Risk 1: Single Point of Failure (ECS Task)
+## Risks and Mitigations
+
+### Risk 1: API Key Exposure
 
 **Risk Level**: High  
-**Impact**: Application unavailability during task failures  
-**Probability**: Medium (Fargate is reliable, but failures happen)
+**Impact**: Unauthorized API access, potential abuse  
+**Probability**: Medium
 
 **Mitigation**:
-- Increase `desired_count` to 2 or more
-- Add Application Load Balancer with health checks
-- Implement auto-scaling policies
-- Enable ECS Circuit Breaker for deployment protection
+- Rotate API keys regularly
+- Implement AWS WAF for rate limiting
+- Consider migrating to Amazon Cognito for authentication
+- Monitor API usage with CloudWatch alarms
 
-### Risk 2: Small VPC Address Space
+### Risk 2: Lambda Cold Starts
+
+**Risk Level**: Medium  
+**Impact**: Increased latency (300-500ms) on first invocation  
+**Probability**: High (inevitable with serverless)
+
+**Mitigation**:
+- Use provisioned concurrency for critical functions
+- Optimize Lambda package size
+- Keep functions warm with scheduled invocations (if needed)
+- Accept cold starts as acceptable trade-off for cost savings
+
+### Risk 3: Small VPC Address Space
 
 **Risk Level**: Medium  
 **Impact**: Unable to add more resources if VPC runs out of IPs  
-**Probability**: Low (sufficient for POC, but limiting for growth)
+**Probability**: Low (sufficient for current serverless architecture)
 
 **Mitigation**:
-- Current /27 VPC provides 32 IPs (sufficient for POC)
+- Current /27 VPC provides 32 IPs (sufficient for serverless POC)
 - Monitor IP utilization
-- Plan VPC expansion or secondary VPC if more services needed
-- Each Fargate task uses 1 IP per subnet
+- Plan VPC expansion or secondary VPC if container services needed
+- Serverless architecture (Lambda) doesn't consume VPC IPs
 
-### Risk 3: No Secrets Rotation
+### Risk 4: No Secrets Rotation
 
-**Risk Level**: Medium  
-**Impact**: Stale credentials increase security risk  
-**Probability**: High (no rotation configured)
+### Risk 5: No Cost Controls
 
-**Mitigation**:
-- Enable AWS Secrets Manager automatic rotation
-- Implement periodic manual rotation policy
-- Use short-lived tokens where possible
+### Risk 6: No Disaster Recovery Plan
 
-### Risk 4: No Cost Controls
+### Risk 7: External API Dependency
 
 **Risk Level**: Medium  
-**Impact**: Unexpected AWS costs  
-**Probability**: Medium (no billing alarms or budgets)
+**Impact**: OFFAPI Lambda fails if Open Food Facts API is down  
+**Probability**: Low (external API is generally stable)
 
 **Mitigation**:
-- Set AWS Budgets with alerts
-- Implement CloudWatch billing alarms
-- Add cost allocation tags (already applied globally)
-- Monitor Cost Explorer regularly
-- Use Fargate Spot for non-production workloads
+- Implement retry logic with exponential backoff (already in Step Functions)
+- Add caching layer for frequently requested products
+- Implement fallback responses
+- Monitor external API health
 
-### Risk 5: No Disaster Recovery Plan
-
-**Risk Level**: Low  
-**Impact**: Extended recovery time during major incidents  
-**Probability**: Low (AWS region failures are rare)
-
-**Mitigation**:
-- Document recovery procedures
-- Maintain infrastructure as code (CDK)
-- Test stack redeployment regularly
-- Consider multi-region deployment for critical workloads
-- Ensure S3, ECR, and Secrets have RETAIN policy
-
-### Risk 6: Manual Secret Population
-
-**Risk Level**: Low  
-**Impact**: Deployment incomplete without manual step  
-**Probability**: High (current design requires manual secret setup)
-
-**Mitigation**:
-- Document secret population in deployment guide
-- Implement automated secret creation in CI/CD
-- Use AWS CDK Custom Resources for secret initialization
-- Add validation checks before deploying ECS stack
-
-### Risk 7: No Monitoring/Alerting
+### Risk 8: No Monitoring/Alerting
 
 **Risk Level**: High  
 **Impact**: Undetected issues, delayed incident response  
@@ -1041,12 +890,17 @@ aws-infra/
 **Mitigation**:
 - Create CloudWatch dashboards for key metrics
 - Implement CloudWatch alarms for:
-  - ECS task health
+  - API Gateway 4xx/5xx errors
+  - Lambda invocation errors
   - Step Functions execution failures
-  - High error rates
-  - Resource utilization
+  - High latency
+  - Throttling events
 - Set up SNS topics for alert notifications
 - Integrate with incident management system
+
+## Technology Stack Recommendations
+
+### Current Stack
 
 ## Technology Stack Recommendations
 
@@ -1055,87 +909,73 @@ aws-infra/
 | Component | Technology | Version/Config | Justification |
 |-----------|-----------|----------------|---------------|
 | IaC Framework | AWS CDK | Python 3.x | Type-safe, reusable constructs; superior to CloudFormation templates |
+| API Layer | Amazon API Gateway | REST API | Managed API service, built-in throttling and authentication |
+| Workflow Orchestration | AWS Step Functions | Standard Workflows | Visual workflows, built-in retry and error handling |
+| Compute | AWS Lambda | Python 3.12, ARM64 | Serverless, auto-scaling, pay-per-use |
 | Networking | Amazon VPC | /27 CIDR, 2 AZs | Cost-optimized, multi-AZ for availability |
 | Storage | Amazon S3 | SSE-S3 encryption | Fully managed, scalable object storage |
 | Container Registry | Amazon ECR | Private, scan-on-push | Native AWS integration, built-in security scanning |
+| Container Orchestration | Amazon ECS | Fargate (ARM64) | Serverless container platform (infrastructure ready) |
 | Secrets Management | AWS Secrets Manager | RETAIN policy | Secure credential storage, AWS service integration |
-| Compute (inactive) | AWS Fargate | ARM64, 0.5 vCPU, 2GB | Serverless, no infrastructure management |
-| Orchestration (inactive) | AWS Step Functions | ASL JSON | Managed workflow engine, visual monitoring |
+| Observability | CloudWatch + X-Ray | Logs, Metrics, Traces | Native AWS integration, distributed tracing |
 
-### Recommendations for Phase 2
+### Recommendations for Future Enhancements
 
 | Component | Recommended Technology | Justification |
 |-----------|----------------------|---------------|
-| Load Balancing | Application Load Balancer | Layer 7 routing, health checks, SSL termination |
-| DNS | Amazon Route 53 | AWS-native DNS, health checks, routing policies |
+| Caching | Amazon ElastiCache (Redis) | Session management, API response caching |
 | CDN | Amazon CloudFront | Global edge caching, DDoS protection |
 | WAF | AWS WAF | Application-level firewall, rate limiting |
-| Monitoring | CloudWatch + X-Ray | Native AWS integration, distributed tracing |
-| Alerting | CloudWatch Alarms + SNS | Real-time alerting, multi-channel notifications |
-
-### Recommendations for Future Phases
-
-| Component | Recommended Technology | Use Case |
-|-----------|----------------------|----------|
+| Authentication | Amazon Cognito | User management, OAuth2/OIDC support |
 | Database | Amazon RDS (PostgreSQL) or Aurora Serverless | Persistent data storage |
-| Caching | Amazon ElastiCache (Redis) | Session management, API response caching |
-| Queue | Amazon SQS | Asynchronous task processing |
-| Service Mesh | AWS App Mesh | Microservices communication, observability |
-| CI/CD | GitHub Actions + AWS CodePipeline | Automated deployment pipeline |
+| Message Queue | Amazon SQS | Asynchronous task processing |
+| Load Balancing | Application Load Balancer | Layer 7 routing, health checks (if container services deployed) |
 
 ## Cost Estimate
 
-### Current Monthly Costs (Phase 1 - Active Stacks Only)
+## Cost Estimate
+
+### Current Monthly Costs (All Active Stacks)
 
 | Service | Component | Estimated Cost |
 |---------|-----------|----------------|
+| API Gateway | 1M requests/month | **$3.50** (at $3.50/million) |
+| Step Functions | 10K executions/month | **$0.25** (at $25 per million) |
+| Lambda (ChefApp) | 10K invocations, 256MB, 200ms avg | **$0.40** |
+| Lambda (OFFAPI) | 5K invocations, 256MB, 500ms avg | **$0.25** |
 | VPC | 2 public subnets, IGW | **Free** (no data transfer) |
-| S3 | Standard storage (assuming 10 GB) | **$0.23/month** (at $0.023/GB) |
-| ECR | 4 repositories, 10 GB storage | **$1.00/month** (at $0.10/GB) |
-| Secrets Manager | 1 secret | **$0.40/month** (at $0.40/secret) |
-| **Total Phase 1** | | **~$1.63/month** |
-
-### Projected Monthly Costs (Phase 2 - All Stacks Enabled)
-
-| Service | Component | Estimated Cost |
-|---------|-----------|----------------|
-| VPC | (same as Phase 1) | **Free** |
-| S3 | (same as Phase 1) | **$0.23/month** |
-| ECR | (same as Phase 1) | **$1.00/month** |
-| Secrets Manager | (same as Phase 1) | **$0.40/month** |
-| ECS Fargate | 1 task, 0.5 vCPU, 2 GB RAM, ARM64 | **~$10.80/month** * |
-| Step Functions | 1,000 state transitions/month | **$0.025/month** (first 4,000 free) |
-| CloudWatch Logs | 2 log groups, 1 GB ingestion | **$0.50/month** |
-| Data Transfer | 10 GB outbound (IGW) | **$0.90/month** (at $0.09/GB) |
-| **Total Phase 2** | | **~$13.90/month** |
+| S3 | Standard storage (10 GB) | **$0.23** (at $0.023/GB) |
+| ECR | 1 repository, 5 GB storage | **$0.50** (at $0.10/GB) |
+| Secrets Manager | 1 secret | **$0.40** (at $0.40/secret) |
+| CloudWatch Logs | 1 GB ingestion, 7-day retention | **$0.50** |
+| **Total** | | **~$6.00/month** |
 
 **Cost Calculation Notes**:
-- *Fargate cost: (0.5 vCPU × $0.03238/hour + 2 GB × $0.00356/hour) × 730 hours/month
-- Fargate ARM64 is ~20% cheaper than x86_64
-- Assumes single task running continuously
+- Lambda ARM64 is ~20% cheaper than x86_64
+- Assumes moderate usage (1M API calls, 10K workflows/month)
 - Does not include NAT Gateway (~$32.40/month) - not used
 - Costs based on us-east-1 region pricing (May 2026)
 - Free tier benefits not included (may reduce actual costs)
 
 ### Cost Optimization Opportunities
 
-1. **Use Fargate Spot** (non-production):
-   - Up to 70% cost reduction
-   - Suitable for dev/test environments
-   - Not recommended for production (task interruption possible)
-
-2. **Right-size resources**:
+1. **Right-size Lambda functions**:
    - Monitor actual CPU/memory usage
-   - Adjust task sizing if over-provisioned
-   - Current 0.5 vCPU / 2 GB is already minimal
+   - Adjust function sizing if over-provisioned
+   - Current 256MB is already minimal
 
-3. **Implement auto-scaling**:
-   - Scale to zero during off-hours (dev environments)
-   - Scale based on actual demand
+2. **API Gateway caching**:
+   - Enable response caching to reduce Lambda invocations
+   - Can reduce costs significantly for repeated requests
+
+3. **Step Functions Express Workflows**:
+   - Consider Express Workflows for high-volume, short-duration workflows
+   - Up to 90% cheaper than Standard Workflows
+   - Trade-off: No execution history retention
 
 4. **ECR lifecycle policies**:
    - Already implemented (untagged images deleted after 1 day)
-   - Consider pruning old tagged images (e.g., keep last 10)
+   - Consider pruning old tagged images (e.g., keep last 5)
 
 5. **CloudWatch Logs retention**:
    - Already set to 7 days (cost-optimized)
@@ -1147,110 +987,118 @@ aws-infra/
 
 ### Total Cost of Ownership (TCO)
 
-| Phase | Monthly Cost | Annual Cost | Notes |
-|-------|--------------|-------------|-------|
-| Phase 1 (Current) | ~$1.63 | ~$19.56 | Infrastructure foundation only |
-| Phase 2 (with ECS) | ~$13.90 | ~$166.80 | Single-task deployment |
-| Phase 3 (with HA) | ~$30-35 | ~$360-420 | Multi-task + ALB + monitoring |
-| Production (scaled) | ~$50-100+ | ~$600-1200+ | Auto-scaling, multi-AZ, observability |
+| Configuration | Monthly Cost | Annual Cost | Notes |
+|---------------|--------------|-------------|-------|
+| Current (Serverless) | ~$6.00 | ~$72.00 | API Gateway + Lambda + Step Functions |
+| With Caching | ~$50-60 | ~$600-720 | Add ElastiCache for response caching |
+| With CDN | ~$10-15 | ~$120-180 | Add CloudFront for global distribution |
+| Production (Full) | ~$80-100+ | ~$960-1200+ | All enhancements + monitoring |
 
 **Note**: All costs are estimates based on AWS pricing as of May 2026 and assume typical usage patterns. Actual costs may vary based on traffic, data transfer, and scaling behavior.
 
 ## Next Steps
 
-### Immediate Actions (Phase 1 - Completed)
+### Immediate Actions (Completed)
 
 - ✅ Deploy NetworkStack
 - ✅ Deploy StorageStack
+- ✅ Deploy ClusterStack
 - ✅ Deploy RegistryStack
 - ✅ Deploy SecretsStack
+- ✅ Deploy OrchestrationStack (Step Functions)
+- ✅ Deploy ApiStack (API Gateway)
+- ✅ Deploy Lambda functions via SAM
 
-### Short-term Actions (Phase 2 - To Activate Application)
+### Short-term Actions (Enhance Current Architecture)
 
-1. **Populate Secrets Manager Secret**:
-   - Generate secure credentials
-   - Use AWS CLI or Console to populate secret
-   - Validate secret structure
-
-2. **Build and Push Docker Image**:
-   - Build chef-ui Docker image
-   - Push to ECR repository
-   - Tag as `latest` or specific version
-
-3. **Uncomment and Deploy Application Stacks**:
-   - Uncomment OrchestrationStack in `app.py`
-   - Uncomment EcsStack in `app.py`
-   - Run `cdk deploy --all` to deploy remaining stacks
-
-4. **Verify Deployment**:
-   - Check ECS task is running
-   - Access Chef UI via public IP
-   - Test Step Functions integration
-   - Verify CloudWatch logs
-
-### Medium-term Actions (Phase 3 - Enhance for Production)
-
-1. **Add High Availability**:
-   - Increase ECS desired count to 2+
-   - Add Application Load Balancer
-   - Implement health checks
-   - Configure auto-scaling policies
-
-2. **Implement Monitoring**:
-   - Create CloudWatch dashboards
-   - Configure CloudWatch alarms (task health, error rates, resource utilization)
+1. **Implement Monitoring and Alerting**:
+   - Create CloudWatch dashboard for API, Lambda, and Step Functions metrics
+   - Configure CloudWatch alarms for errors, latency, and throttling
    - Set up SNS notification topics
-   - Integrate with incident management
+   - Document alert response procedures
 
-3. **Enhance Security**:
+2. **Enhance Security**:
    - Enable VPC Flow Logs
-   - Add AWS WAF
+   - Add AWS WAF for API Gateway
    - Enable AWS GuardDuty
    - Implement AWS Config rules
    - Enable Secrets Manager rotation
+   - Rotate API keys regularly
 
-4. **Optimize Costs**:
-   - Set up AWS Budgets
+3. **Optimize Costs**:
+   - Set up AWS Budgets with alerts
    - Configure billing alarms
-   - Review and optimize resource sizing
-   - Implement cost allocation tags
+   - Review and optimize Lambda memory allocation
+   - Implement API response caching
 
-### Long-term Actions (Phase 4+ - Scale and Mature)
+4. **Improve Observability**:
+   - Review X-Ray traces for performance bottlenecks
+   - Add custom CloudWatch metrics
+   - Implement structured logging
+   - Create operational dashboards
 
-1. **Add CDN and Global Distribution**:
-   - Deploy Amazon CloudFront
+### Medium-term Actions (Scale and Enhance)
+
+1. **Add Caching Layer**:
+   - Implement ElastiCache (Redis) for API response caching
+   - Cache Open Food Facts API responses
+   - Reduce Lambda invocations and external API calls
+
+2. **Add Content Delivery Network**:
+   - Deploy Amazon CloudFront for global distribution
    - Configure Route 53 DNS
-   - Implement geo-routing
+   - Implement geo-routing for better performance
 
-2. **Enhance Application Architecture**:
-   - Add database layer (RDS/Aurora)
-   - Implement caching (ElastiCache)
-   - Add message queues (SQS)
+3. **Enhance Authentication**:
+   - Replace API Key with Amazon Cognito
+   - Implement OAuth2/OIDC flows
+   - Add user management and authorization
+
+4. **Implement CI/CD**:
+   - Automate Lambda deployments via GitHub Actions
+   - Add automated testing (unit, integration, e2e)
+   - Implement infrastructure validation gates
+   - Add CDK deployment automation
+
+### Long-term Actions (Future Enhancements)
+
+1. **Add Database Layer**:
+   - Deploy RDS/Aurora for persistent data
+   - Implement data persistence for user preferences
+   - Add analytics and reporting capabilities
+
+2. **Implement Advanced Workflows**:
+   - Add more complex Step Functions workflows
+   - Implement parallel processing
+   - Add human-in-the-loop approvals
+   - Create workflow templates
+
+3. **Multi-Region Deployment**:
+   - Implement multi-region architecture for DR
+   - Use Route 53 for failover routing
+   - Replicate data across regions
+   - Test failover procedures
+
+4. **Add Container-Based Services** (Optional):
+   - Deploy Chef UI as ECS Fargate service if UI needed
+   - Connect to existing Step Functions workflow
+   - Add Application Load Balancer
    - Implement service mesh (App Mesh)
-
-3. **Implement Infrastructure CI/CD**:
-   - Automate CDK deployments via GitHub Actions
-   - Add automated testing (CDK assertions)
-   - Implement multi-environment strategy (dev/staging/prod)
-   - Add infrastructure validation gates
-
-4. **Disaster Recovery**:
-   - Document and test DR procedures
-   - Implement multi-region deployment
-   - Set up automated backups
-   - Create operational runbooks
 
 ## References
 
 ### AWS Services Used
 
+- [Amazon API Gateway](https://aws.amazon.com/api-gateway/) - REST API service
+- [AWS Lambda](https://aws.amazon.com/lambda/) - Serverless compute
+- [AWS Step Functions](https://aws.amazon.com/step-functions/) - Workflow orchestration
 - [Amazon VPC](https://aws.amazon.com/vpc/) - Virtual Private Cloud networking
 - [Amazon S3](https://aws.amazon.com/s3/) - Object storage service
 - [Amazon ECR](https://aws.amazon.com/ecr/) - Elastic Container Registry
-- [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) - Secrets management service
 - [Amazon ECS](https://aws.amazon.com/ecs/) - Elastic Container Service (Fargate)
-- [AWS Step Functions](https://aws.amazon.com/step-functions/) - Workflow orchestration
+- [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) - Secrets management service
 - [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/) - Monitoring and logging
+- [AWS X-Ray](https://aws.amazon.com/xray/) - Distributed tracing
 - [AWS IAM](https://aws.amazon.com/iam/) - Identity and Access Management
 
 ### AWS CDK Documentation
@@ -1270,6 +1118,10 @@ aws-infra/
 
 ### AWS Architecture Patterns
 
+- [Serverless Application Lens](https://docs.aws.amazon.com/wellarchitected/latest/serverless-applications-lens/welcome.html)
+- [API Gateway Best Practices](https://docs.aws.amazon.com/apigateway/latest/developerguide/best-practices.html)
+- [Lambda Best Practices](https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html)
+- [Step Functions Best Practices](https://docs.aws.amazon.com/step-functions/latest/dg/best-practices.html)
 - [ECS Fargate Reference Architecture](https://github.com/aws-samples/ecs-refarch-continuous-deployment)
 - [AWS Architecture Center](https://aws.amazon.com/architecture/)
 - [Container Security Best Practices](https://docs.aws.amazon.com/AmazonECS/latest/bestpracticesguide/security.html)
@@ -1278,8 +1130,9 @@ aws-infra/
 
 - [CDK Application Entry Point](../aws-infra/app.py)
 - [Network Configuration](../aws-infra/config/network_config.py)
-- [ECS Configuration](../aws-infra/config/ecs_config.py)
+- [API Gateway Configuration](../aws-infra/config/api_config.py)
 - [Orchestration Configuration](../aws-infra/config/orchestration_config.py)
+- [Step Functions Workflow Definition](../aws-infra/config/step_functions/hello_world_workflow.asl.json)
 
 ---
 
@@ -1314,7 +1167,7 @@ curl -fsSL https://d2lang.com/install.sh | sh
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: May 2, 2026  
+**Document Version**: 2.0  
+**Last Updated**: May 8, 2026  
 **Author**: AWS CDK Infrastructure Analysis  
-**Status**: Active (Phase 1 deployed, Phase 2 ready for activation)
+**Status**: Active - Serverless API Architecture (7 CDK stacks + 2 SAM Lambda functions deployed)

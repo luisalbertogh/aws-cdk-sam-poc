@@ -226,47 +226,11 @@ aws-region: {
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
     
     # ECR Repository
-    ecr-registry: {
-      label: "ECR Registry"
-      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr_registry.svg
+    chef-ui-repo: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
+      label: "chef-ui\nrepository"
       class: resource
-      
-      # Individual repositories
-      chef-ui-repo: {
-        shape: image
-        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
-        label: "chef-ui\nrepository"
-        style: {
-          font-size: 28
-        }
-      }
-      
-      chef-agent-repo: {
-        shape: image
-        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
-        label: "chef-agent\nrepository"
-        style: {
-          font-size: 28
-        }
-      }
-      
-      nutritionist-repo: {
-        shape: image
-        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
-        label: "nutritionist-agent\nrepository"
-        style: {
-          font-size: 28
-        }
-      }
-      
-      instructor-repo: {
-        shape: image
-        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
-        label: "instructor-agent\nrepository"
-        style: {
-          font-size: 28
-        }
-      }
     }
   }
   
@@ -282,46 +246,6 @@ aws-region: {
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/secrets.svg
       label: "Secrets Manager\nchef-ui-login-passwords\n(Chainlit Auth)"
       class: resource
-    }
-  }
-  
-  # ECS Stack - INACTIVE (commented out)
-  ecs-stack: {
-    label: "ECS Stack\n(CloudPocEcsStack)\n[COMMENTED OUT]"
-    class: inactive
-    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs.svg
-    
-    # ECS Service
-    ecs-service: {
-      shape: image
-      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs_service.svg
-      label: "Chef UI Service\nFargate (ARM64)\n0.5 vCPU, 2GB RAM"
-      class: resource
-      style: {
-        font-size: 30
-      }
-    }
-    
-    # CloudWatch Logs for ECS
-    ecs-logs: {
-      shape: image
-      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/cloud_watch.svg
-      label: "CloudWatch Logs\n/aws/ecs/chef-ui"
-      class: resource
-      style: {
-        font-size: 28
-      }
-    }
-    
-    # IAM Task Role
-    task-role: {
-      shape: image
-      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_role.svg
-      label: "IAM Task Role\nchef-ui-task-role"
-      class: resource
-      style: {
-        font-size: 28
-      }
     }
   }
 }
@@ -536,76 +460,12 @@ aws-region.network-stack.vpc.sg -> aws-region.network-stack.vpc.subnet2: "protec
 }
 
 # CI/CD to ECR
-cicd -> aws-region.registry-stack.ecr-registry: "pushes\nimages" {
+cicd -> aws-region.registry-stack.chef-ui-repo: "pushes\nimages" {
   style: {
     font-size: 32
     stroke: "#4caf50"
     stroke-width: 3
     animated: true
-  }
-}
-
-# ============================================================================
-# INACTIVE INFRASTRUCTURE CONNECTIONS (if ECS enabled)
-# ============================================================================
-
-# ECS Service would pull from ECR
-aws-region.ecs-stack.ecs-service -> aws-region.registry-stack.ecr-registry.chef-ui-repo: "pulls image" {
-  style: {
-    font-size: 32
-    stroke: "#9e9e9e"
-    stroke-width: 2
-    stroke-dash: 5
-  }
-}
-
-# ECS Service would use Secrets
-aws-region.ecs-stack.ecs-service -> aws-region.secrets-stack.secret: "reads\ncredentials" {
-  style: {
-    font-size: 32
-    stroke: "#9e9e9e"
-    stroke-width: 2
-    stroke-dash: 5
-  }
-}
-
-# ECS Service would run in VPC
-aws-region.network-stack.vpc.subnet1 -> aws-region.ecs-stack.ecs-service: "hosts tasks" {
-  style: {
-    font-size: 32
-    stroke: "#9e9e9e"
-    stroke-width: 2
-    stroke-dash: 5
-  }
-}
-
-# ECS would send logs to CloudWatch
-aws-region.ecs-stack.ecs-service -> aws-region.ecs-stack.ecs-logs: "sends logs" {
-  style: {
-    font-size: 32
-    stroke: "#9e9e9e"
-    stroke-width: 2
-    stroke-dash: 5
-  }
-}
-
-# ECS Service would invoke Step Functions
-aws-region.ecs-stack.ecs-service -> aws-region.orchestration-stack.sfn: "starts\nexecutions" {
-  style: {
-    font-size: 32
-    stroke: "#9e9e9e"
-    stroke-width: 2
-    stroke-dash: 5
-  }
-}
-
-# ECS would use Cluster
-aws-region.cluster-stack.cluster -> aws-region.ecs-stack.ecs-service: "hosts" {
-  style: {
-    font-size: 32
-    stroke: "#9e9e9e"
-    stroke-width: 2
-    stroke-dash: 5
   }
 }
 
