@@ -16,6 +16,9 @@ class OrchestrationConfig:
     workflow_definition_path: str = "step_functions/hello_world_workflow.asl.json"
     # Name of the Step Functions state machine
     state_machine_name: str = "HelloWorldStateMachine"
+    # Lambda function names (deployed via SAM)
+    chef_lambda_name: str = "CloudCorePocChefAppStack-ChefApp"
+    offapi_lambda_name: str = "CloudPocOpenFoodFactsAPIStack-OFFAPICaller"
 
 
 CLOUD_ORCHESTRATION_CONFIG = OrchestrationConfig()

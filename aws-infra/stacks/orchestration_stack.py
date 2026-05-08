@@ -118,12 +118,8 @@ class OrchestrationStack(cdk.Stack):
         # ------------------------------------------------------------------ #
         # Lambda Function ARNs — construct ARNs for SAM-deployed functions    #
         # ------------------------------------------------------------------ #
-        # NOTE: Update these function names to match your actual Lambda names
-        chef_lambda_name = "CloudCorePocChefAppStack-ChefApp"
-        next_lambda_name = "CloudPocOpenFoodFactsAPIStack-OFFAPICaller"
-
-        chef_lambda_arn = f"arn:aws:lambda:{self.region}:{self.account}:function:{chef_lambda_name}"
-        next_lambda_arn = f"arn:aws:lambda:{self.region}:{self.account}:function:{next_lambda_name}"
+        chef_lambda_arn = f"arn:aws:lambda:{self.region}:{self.account}:function:{cfg.chef_lambda_name}"
+        next_lambda_arn = f"arn:aws:lambda:{self.region}:{self.account}:function:{cfg.offapi_lambda_name}"
 
         # ------------------------------------------------------------------ #
         # State Machine                                                        #
