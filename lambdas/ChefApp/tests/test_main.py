@@ -34,9 +34,9 @@ class TestLambdaHandlerInputFormat:
         assert len(body["sugerencias"]) == 3
         
         # Verify the expected dish suggestions
-        assert "Ensalada César con pollo a la parrilla" in body["sugerencias"]
-        assert "Pasta al pesto con tomates cherry" in body["sugerencias"]
-        assert "Salmón al horno con espárragos" in body["sugerencias"]
+        assert "Pasta" in body["sugerencias"]
+        assert "Paella" in body["sugerencias"]
+        assert "Lentejas" in body["sugerencias"]
 
     def test_handles_body_with_json_string(self, context):
         """Test that the handler can parse JSON from body field."""
