@@ -116,6 +116,16 @@ class OrchestrationStack(cdk.Stack):
         )
 
         # ------------------------------------------------------------------ #
+        # Lambda Function ARNs — construct ARNs for SAM-deployed functions    #
+        # ------------------------------------------------------------------ #
+        # NOTE: Update these function names to match your actual Lambda names
+        chef_lambda_name = "CloudCorePocChefAppStack-ChefApp"
+        next_lambda_name = "CloudPocOpenFoodFactsAPIStack-OFFAPICaller"
+
+        chef_lambda_arn = f"arn:aws:lambda:{self.region}:{self.account}:function:{chef_lambda_name}"
+        next_lambda_arn = f"arn:aws:lambda:{self.region}:{self.account}:function:{next_lambda_name}"
+
+        # ------------------------------------------------------------------ #
         # State Machine                                                        #
         # ------------------------------------------------------------------ #
         self.state_machine = sfn.StateMachine(
@@ -123,6 +133,10 @@ class OrchestrationStack(cdk.Stack):
             cfg.state_machine_name,
             state_machine_name=cfg.state_machine_name,
             definition_body=sfn.DefinitionBody.from_file(_asl_path),
+            definition_substitutions={
+                "ChefLambdaArn": chef_lambda_arn,
+                "NextLambdaArn": next_lambda_arn,
+            },
             role=self.execution_role,
             tracing_enabled=True,
             logs=sfn.LogOptions(

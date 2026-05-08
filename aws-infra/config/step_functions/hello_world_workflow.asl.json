@@ -6,7 +6,7 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "REPLACE_WITH_CHEF_LAMBDA_ARN",
+        "FunctionName": "${ChefLambdaArn}",
         "Payload.$": "$"
       },
       "ResultSelector": {
@@ -55,8 +55,11 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "REPLACE_WITH_NEXT_LAMBDA_ARN",
-        "Payload.$": "$.lambdaResult.body"
+        "FunctionName": "${NextLambdaArn}",
+        "Payload": {
+          "product_names.$": "States.Array($.lambdaResult.body.plato)",
+          "limit": 3
+        }
       },
       "ResultSelector": {
         "statusCode.$": "$.Payload.statusCode",
