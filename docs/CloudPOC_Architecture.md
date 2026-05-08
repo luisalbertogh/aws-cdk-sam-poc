@@ -4,6 +4,7 @@
 
 This document describes the AWS infrastructure defined using AWS Cloud Development Kit (CDK) for the Cloud POC project. The infrastructure is organized into multiple CDK stacks, each responsible for a specific aspect of the overall architecture. The project includes both CDK-managed infrastructure and SAM-deployed Lambda functions that work together to provide a serverless Chef assistant API.
 
+
 ## System Context
 
 The Cloud POC infrastructure provisions a serverless application environment on AWS, including networking, storage, container registry, secrets management, Step Functions orchestration, API Gateway, and AWS Lambda functions. The architecture follows AWS best practices for security, scalability, and operational excellence.
