@@ -230,7 +230,7 @@ class EcsStack(cdk.Stack):
             assign_public_ip=True,
             security_groups=[security_group],
             vpc_subnets=ec2.SubnetSelection(
-                subnet_type=ec2.SubnetType.PUBLIC,
+                subnets=vpc.select_subnets(subnet_type=ec2.SubnetType.PUBLIC).subnets,
             ),
         )
 

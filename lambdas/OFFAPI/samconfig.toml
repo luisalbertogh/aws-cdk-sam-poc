@@ -1,7 +1,7 @@
 version = 0.1
 
 [default.global.parameters]
-stack_name = "AgentCorePocOpenFoodFactsAPIStack"
+stack_name = "CloudPocOpenFoodFactsAPIStack"
 
 [default.build.parameters]
 cached = true
