@@ -1,5 +1,6 @@
 """Configuration package for the Cloud POC CDK infrastructure."""
 
+from .api_config import CLOUD_API_CONFIG, ApiGatewayConfig
 from .ecr_config import (
     CHEF_UI_ECR_CONFIG,
     EcrRepositoryConfig,
@@ -11,12 +12,14 @@ from .orchestration_config import CLOUD_ORCHESTRATION_CONFIG, OrchestrationConfi
 from .tags_config import COMMON_TAGS
 
 __all__ = [
+    "CLOUD_API_CONFIG",
     "CLOUD_BUCKET_CONFIG",
     "S3BucketConfig",
     "CLOUD_NETWORK_CONFIG",
     "CLOUD_ORCHESTRATION_CONFIG",
     "CHEF_UI_ECR_CONFIG",
     "CHEF_UI_ECS_CONFIG",
+    "ApiGatewayConfig",
     "EcsServiceConfig",
     "EcrRepositoryConfig",
     "IngressRule",

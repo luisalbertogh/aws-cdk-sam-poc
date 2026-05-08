@@ -12,7 +12,7 @@ import aws_cdk as cdk
 
 from config import COMMON_TAGS
 from config.ecs_config import CHEF_UI_ECS_CONFIG
-from stacks import ClusterStack, EcsStack, NetworkStack, OrchestrationStack, RegistryStack, SecretsStack, StorageStack
+from stacks import ApiStack, ClusterStack, EcsStack, NetworkStack, OrchestrationStack, RegistryStack, SecretsStack, StorageStack
 
 app = cdk.App()
 
@@ -73,6 +73,14 @@ orchestration_stack = OrchestrationStack(
     "CloudPocOrchestrationStack",
     env=env,
     description="Cloud POC — Hello World Step Functions workflow",
+)
+
+api_stack = ApiStack(
+    app,
+    "CloudPocApiStack",
+    state_machine=orchestration_stack.state_machine,
+    env=env,
+    description="Cloud POC — API Gateway for Chef Step Functions integration",
 )
 
 # EcsStack(
