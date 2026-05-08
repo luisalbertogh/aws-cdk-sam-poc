@@ -26,8 +26,8 @@ class FoodList(BaseModel):
 
 
 class OpenFoodFactsAPI:
-    PROD_URL = os.environ.get("OFF_PROD_URL", "https://es.openfoodfacts.org/cgi/search.pl")
-    STAGING_URL = os.environ.get("OFF_STAGING_URL", "https://es.openfoodfacts.net/cgi/search.pl")
+    PROD_URL = os.environ.get("OFF_PROD_URL", "https://es-es.openfoodfacts.org/cgi/search.pl")
+    STAGING_URL = os.environ.get("OFF_STAGING_URL", "https://es-es.openfoodfacts.net/cgi/search.pl")
 
     def __init__(self, app_name: str, version: str, email: str, is_staging: bool = True):
         self.is_staging = is_staging
