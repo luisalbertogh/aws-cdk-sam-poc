@@ -1,7 +1,7 @@
 version = 0.1
 
 [default.global.parameters]
-stack_name = "AgentCorePocChefAppStack"
+stack_name = "CloudCorePocChefAppStack"
 
 [default.build.parameters]
 cached = true

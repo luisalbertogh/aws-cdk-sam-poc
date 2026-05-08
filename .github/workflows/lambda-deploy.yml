@@ -88,14 +88,9 @@ jobs:
             --query "Exports[?Name=='CloudPocStorageStack-BucketName'].Value" \
             --output text)" >> $GITHUB_ENV
 
-          # echo "LAMBDA_EXECUTION_ROLE_ARN=arn:aws:iam::741881499996:role/AgentCorePocComputeStack-openFoodFactsAPIServiceRol-iVphXGoScYlP" >> $GITHUB_ENV
-
       - name: Test env variables
         run: |
           echo "SAM_DEPLOYMENT_BUCKET: ${{ env.SAM_DEPLOYMENT_BUCKET }}"
-          # echo "LAMBDA_EXECUTION_ROLE_ARN: ${{ env.LAMBDA_EXECUTION_ROLE_ARN }}"
-          # echo "SAM_DEPLOYMENT_BUCKET: ${SAM_DEPLOYMENT_BUCKET}"
-          # echo "LAMBDA_EXECUTION_ROLE_ARN: ${LAMBDA_EXECUTION_ROLE_ARN}"
 
       - name: SAM Build
         run: |
