@@ -2,29 +2,36 @@
 
 ## Executive Summary
 
-This document describes the AWS infrastructure defined using AWS Cloud Development Kit (CDK) for the Cloud POC project. The infrastructure is organized into multiple CDK stacks, each responsible for a specific aspect of the overall architecture. The project includes both active (deployed) stacks and inactive (commented-out) stacks that are defined but not currently deployed.
+This document describes the AWS infrastructure defined using AWS Cloud Development Kit (CDK) for the Cloud POC project. The infrastructure is organized into multiple CDK stacks, each responsible for a specific aspect of the overall architecture. The project includes both CDK-managed infrastructure and SAM-deployed Lambda functions that work together to provide a serverless Chef assistant API.
 
 ## System Context
 
-The Cloud POC infrastructure provisions a containerized application environment on AWS, including networking, storage, container registry, secrets management, orchestration, and compute resources. The architecture follows AWS best practices for security, scalability, and operational excellence.
+The Cloud POC infrastructure provisions a serverless application environment on AWS, including networking, storage, container registry, secrets management, Step Functions orchestration, API Gateway, and AWS Lambda functions. The architecture follows AWS best practices for security, scalability, and operational excellence.
 
 ![Cloud POC Architecture](cloud-poc-architecture.svg)
 
 ## Architecture Overview
 
-The infrastructure is organized into six CDK stacks:
+The infrastructure is organized into seven CDK stacks and two SAM-deployed Lambda functions:
 
-### Active Stacks (Currently Deployed)
+### Active CDK Stacks (Currently Deployed)
 
 1. **CloudPocNetworkStack**: Provides VPC networking infrastructure
 2. **CloudPocStorageStack**: Provisions encrypted S3 bucket storage
-3. **CloudPocRegistryStack**: Creates ECR repositories for container images
-4. **CloudPocSecretsStack**: Manages application secrets via AWS Secrets Manager
+3. **CloudPocClusterStack**: Creates ECS Fargate cluster (infrastructure ready)
+4. **CloudPocRegistryStack**: Creates ECR repositories for container images
+5. **CloudPocSecretsStack**: Manages application secrets via AWS Secrets Manager
+6. **CloudPocOrchestrationStack**: Provisions Step Functions state machine for workflow orchestration
+7. **CloudPocApiStack**: Provides API Gateway for HTTP access to Step Functions
+
+### SAM-Deployed Lambda Functions
+
+1. **ChefApp Lambda**: Mock chef agent that provides dish suggestions
+2. **OFFAPI Lambda**: Invokes Open Food Facts API to retrieve nutritional information
 
 ### Inactive Stacks (Defined but Commented Out)
 
-5. **CloudPocOrchestrationStack**: Provisions Step Functions state machine for workflow orchestration
-6. **CloudPocEcsStack**: Deploys Chef UI as an ECS Fargate service
+8. **CloudPocEcsStack**: Deploys Chef UI as an ECS Fargate service (infrastructure ready but not deployed)
 
 The architecture diagram above illustrates all components, with active stacks highlighted in green and inactive (commented-out) stacks shown in gray with dashed borders.
 
@@ -77,7 +84,19 @@ nat_gateways: 0  # No NAT Gateway needed
 - Enforce SSL/TLS for all requests
 - Bucket owner enforced object ownership
 
-### 3. Registry Stack (CloudPocRegistryStack) - **ACTIVE**
+### 3. Cluster Stack (CloudPocClusterStack) - **ACTIVE**
+
+**Purpose**: Provides ECS Fargate cluster infrastructure (ready for future ECS services).
+
+**Components**:
+- **ECS Fargate Cluster**: Serverless container orchestration platform
+
+**Design Decisions**:
+- **Fargate serverless**: No EC2 instances to manage
+- **Infrastructure ready**: Cluster created but no services deployed yet
+- **Future ready**: Prepared for Chef UI ECS service deployment
+
+### 4. Registry Stack (CloudPocRegistryStack) - **ACTIVE**
 
 **Purpose**: Hosts Docker container images for the application components.
 
@@ -101,7 +120,7 @@ nat_gateways: 0  # No NAT Gateway needed
 - Tag immutability enabled
 - Automatic lifecycle management
 
-### 4. Secrets Stack (CloudPocSecretsStack) - **ACTIVE**
+### 5. Secrets Stack (CloudPocSecretsStack) - **ACTIVE**
 
 **Purpose**: Manages application credentials and secrets securely.
 
@@ -120,29 +139,176 @@ nat_gateways: 0  # No NAT Gateway needed
 - Resource-based access policy
 - Retain on deletion
 
-### 5. Orchestration Stack (CloudPocOrchestrationStack) - **COMMENTED OUT**
+### 6. Orchestration Stack (CloudPocOrchestrationStack) - **ACTIVE**
 
-**Purpose**: Provides workflow orchestration using AWS Step Functions.
+**Purpose**: Provides workflow orchestration using AWS Step Functions that coordinates Lambda function invocations.
 
 **Components**:
-- **Step Functions State Machine**: "Hello World" workflow
+- **Step Functions State Machine**: "HelloWorldStateMachine" workflow
+  - Invokes ChefApp Lambda function first
+  - Conditionally checks response for "sugerencias" field
+  - If present: Returns suggestions directly
+  - If not present: Invokes OFFAPI Lambda function for nutritional data
 - **CloudWatch Log Group**: State machine execution logs (7-day retention)
-- **IAM Execution Role**: Least-privilege permissions for CloudWatch Logs and X-Ray
+- **IAM Execution Role**: Permissions for CloudWatch Logs, X-Ray, and Lambda invocation
+
+**Workflow Logic**:
+1. **InvokeChefLambda**: Calls ChefApp Lambda with user input
+2. **CheckSuggestions**: Validates if response contains "sugerencias" field
+3. **ReturnSuggestions**: Returns Chef suggestions if present (success path)
+4. **InvokeNextLambda**: Calls OFFAPI Lambda with Chef response (alternative path)
+5. **ReturnFinalResult**: Returns nutritional information from OFFAPI
 
 **Design Decisions**:
 - **ASL JSON definition**: Workflow defined in `config/step_functions/hello_world_workflow.asl.json`
+- **Dynamic ARN substitution**: Lambda ARNs injected at deployment via `definition_substitutions`
 - **X-Ray tracing**: Enabled for distributed tracing
 - **CloudWatch logging**: ALL level with execution data included
-- **Least-privilege IAM**: Only required permissions for logging and tracing
+- **Retry logic**: 3 attempts with exponential backoff for Lambda invocations
+- **Error handling**: Catch blocks for graceful failure handling
 
-**Current Status**: Defined in code but commented out in `app.py` (lines 57-62)
+**Lambda Function Integration**:
+- **ChefApp Lambda**: `CloudCorePocChefAppStack-ChefApp`
+- **OFFAPI Lambda**: `CloudPocOpenFoodFactsAPIStack-OFFAPICaller`
 
-### 6. ECS Stack (CloudPocEcsStack) - **COMMENTED OUT**
+**Current Status**: Fully active and integrated with API Gateway
+
+### 7. API Stack (CloudPocApiStack) - **ACTIVE**
+
+**Purpose**: Provides public REST API for invoking the Step Functions workflow via HTTP.
+
+**Components**:
+- **REST API Gateway**: `CloudPocChefApi`
+  - **Endpoint**: `/chef` (POST method)
+  - **Stage**: `prod`
+  - **Authentication**: API Key required
+- **API Key**: `CloudPocChefApiKey`
+- **Usage Plan**: Rate limiting and throttling configuration
+- **IAM Role**: Grants API Gateway permission to start Step Functions executions
+- **CloudWatch Log Group**: `/aws/apigateway/CloudPocChefApi` (7-day retention)
+
+**Design Decisions**:
+- **REST API**: Classic REST API (not HTTP API) for Step Functions integration features
+- **API Key authentication**: Simple authentication mechanism for POC
+- **Direct Step Functions integration**: Uses AWS Service integration (no Lambda proxy)
+- **X-Ray tracing enabled**: Full distributed tracing across API → Step Functions → Lambda
+- **CloudWatch logging**: INFO level with access logs in JSON format
+- **Throttling**: 10 requests/second rate limit, 20 burst limit
+- **CORS enabled**: Allow requests from all origins for development flexibility
+
+**Integration Details**:
+- **Request transformation**: Wraps incoming JSON payload for Step Functions
+- **Response transformation**: Returns execution ARN and start date
+- **Error handling**: Maps 4xx and 5xx errors with appropriate messages
+
+**Security Features**:
+- API Key required for all requests
+- Usage plan with rate limiting
+- CloudWatch role automatically created
+- IAM least-privilege for Step Functions invocation
+
+**Current Status**: Fully active and publicly accessible
+
+## SAM-Deployed Lambda Functions
+
+### ChefApp Lambda (SAM Stack: AgentCorePocChefAppStack)
+
+**Purpose**: Mock chef agent that provides dish suggestions based on user input.
+
+**Configuration**:
+- **Runtime**: Python 3.12 (ARM64 architecture)
+- **Memory**: 256 MB
+- **Timeout**: 30 seconds
+- **Function Name**: `CloudCorePocChefAppStack-ChefApp`
+
+**Functionality**:
+- Accepts input with "plato" field
+- Returns three dish suggestions
+- Response includes "sugerencias" array
+
+**Input Format**:
+```json
+{
+  "input": "Sugiereme un plato para cenar esta noche, por favor..."
+}
+```
+
+**Output Format**:
+```json
+{
+  "statusCode": 200,
+  "body": {
+    "plato": {...},
+    "sugerencias": [
+      "Ensalada César con pollo a la parrilla",
+      "Pasta al pesto con tomates cherry",
+      "Salmón al horno con espárragos"
+    ]
+  }
+}
+```
+
+**Resources**:
+- Lambda Layer: `chefapp-common-dependencies` (aws-lambda-powertools, pydantic)
+- IAM Role: With CloudWatch Logs and X-Ray permissions
+- CloudWatch Log Group: 7-day retention
+
+### OFFAPI Lambda (SAM Stack: AgentCorePocOpenFoodFactsAPIStack)
+
+**Purpose**: Queries Open Food Facts API to retrieve nutritional information for food products.
+
+**Configuration**:
+- **Runtime**: Python 3.12 (ARM64 architecture)
+- **Memory**: 256 MB
+- **Timeout**: 30 seconds
+- **Function Name**: `CloudPocOpenFoodFactsAPIStack-OFFAPICaller`
+
+**Functionality**:
+- Accepts product names list and limit parameter
+- Calls Open Food Facts API (staging environment)
+- Returns nutritional data including calories, fat, sugars, etc.
+
+**Input Format** (from Step Functions):
+```json
+{
+  "product_names": ["leche"],
+  "limit": 3
+}
+```
+
+**Output Format**:
+```json
+{
+  "statusCode": 200,
+  "body": {
+    "leche": {
+      "products": [
+        {
+          "name": "Leche Entera",
+          "brand": "Marca",
+          "calories_100g": 65,
+          "nutriments": {...}
+        }
+      ]
+    }
+  }
+}
+```
+
+**Resources**:
+- Lambda Layer: `common-dependencies` (requests, pydantic, aws-lambda-powertools)
+- IAM Role: With CloudWatch Logs and X-Ray permissions
+- CloudWatch Log Group: 7-day retention
+- Environment Variables: OFF_PROD_URL, OFF_STAGING_URL
+
+### 8. ECS Stack (CloudPocEcsStack) - **COMMENTED OUT**
+
+### 8. ECS Stack (CloudPocEcsStack) - **COMMENTED OUT**
 
 **Purpose**: Runs the Chef UI Chainlit application as a containerized service.
 
 **Components**:
-- **ECS Fargate Cluster**: Serverless compute platform
+- **ECS Fargate Cluster**: Serverless compute platform (already provisioned by ClusterStack)
 - **ECS Service**: Chef UI service with the following specifications:
   - **Platform**: ARM64 architecture
   - **Resources**: 0.5 vCPU (512 CPU units), 2 GB RAM
@@ -161,43 +327,302 @@ nat_gateways: 0  # No NAT Gateway needed
 - **No load balancer**: Single task sufficient for POC (ALB can be added later)
 - **Step Functions integration**: Task role allows starting and monitoring state machine executions
 
-**Current Status**: Defined in code but commented out in `app.py` (lines 64-75)
+**Current Status**: Defined in code but commented out in `app.py` (lines 86-97)
 
 **Dependencies**:
 - NetworkStack (VPC, Security Group)
+- ClusterStack (ECS Cluster)
 - RegistryStack (chef-ui ECR repository)
 - SecretsStack (Chainlit credentials)
 - OrchestrationStack (Step Functions ARN)
 
 ## Deployment Architecture
 
-### Active Infrastructure
+### Current Active Infrastructure
 
 The currently active infrastructure consists of:
 
 ```
-Internet
+Internet Users
     ↓
-Internet Gateway (IGW)
+API Gateway (/chef endpoint)
+    ↓ (requires API Key)
+Step Functions State Machine
     ↓
-VPC (10.0.0.0/27)
-    ├─ Public Subnet 1 (AZ-1) ─┐
-    ├─ Public Subnet 2 (AZ-2) ─┼─ Protected by Security Group
-    └─ Security Group (chef-ui-sg)
+┌─────────────────────┬─────────────────────┐
+│                     │                     │
+│   ChefApp Lambda    │   OFFAPI Lambda     │
+│   (provides dishes) │   (nutritional data)│
+└─────────────────────┴─────────────────────┘
 
-S3 Bucket (encrypted, private)
-
-ECR Registry
-    ├─ chef-ui repository
-    ├─ chef-agent repository
-    ├─ nutritionist-agent repository
-    └─ instructor-agent repository
-
-Secrets Manager
-    └─ chef-ui-login-passwords
+Supporting Infrastructure:
+├─ VPC (10.0.0.0/27)
+│  ├─ Internet Gateway
+│  ├─ Public Subnet 1 (AZ-1)
+│  ├─ Public Subnet 2 (AZ-2)
+│  └─ Security Group
+├─ S3 Bucket (encrypted, private)
+├─ ECS Cluster (ready, no services)
+├─ ECR Registry
+│  ├─ chef-ui repository
+│  ├─ chef-agent repository
+│  ├─ nutritionist-agent repository
+│  └─ instructor-agent repository
+└─ Secrets Manager
+   └─ chef-ui-login-passwords
 ```
 
-### Full Infrastructure (When ECS and Orchestration Stacks Are Enabled)
+### API Request Flow
+
+1. **User Request**: Client sends POST request to API Gateway `/chef` endpoint with API key
+2. **API Gateway**: Validates API key, starts Step Functions execution
+3. **Step Functions**: Orchestrates workflow:
+   - Invokes ChefApp Lambda with user input
+   - Checks response for "sugerencias" field
+   - If suggestions exist: Returns them
+   - If not: Invokes OFFAPI Lambda for nutritional data
+4. **Response**: API Gateway returns execution details to client
+
+### Data Flow
+
+**Scenario 1: Chef Suggestions Found**
+```
+User → API Gateway → Step Functions → ChefApp Lambda → Step Functions → API Gateway → User
+                                       (returns suggestions)
+```
+
+**Scenario 2: Nutritional Data Needed**
+```
+User → API Gateway → Step Functions → ChefApp Lambda → Step Functions → OFFAPI Lambda → Step Functions → API Gateway → User
+                                       (no suggestions)      (calls Open Food Facts API)
+```
+
+## Deployment Instructions
+
+### Prerequisites
+
+1. **AWS CLI** configured with appropriate credentials
+2. **AWS CDK** installed (`npm install -g aws-cdk`)
+3. **AWS SAM CLI** installed
+4. **Python 3.12+** for Lambda development
+5. **Docker** for SAM builds
+
+### Deployment Order
+
+#### Phase 1: Deploy Lambda Functions (SAM)
+
+1. **Deploy ChefApp Lambda**:
+```bash
+cd lambdas/ChefApp
+sam build
+sam deploy --guided
+# Stack name: AgentCorePocChefAppStack
+```
+
+2. **Deploy OFFAPI Lambda**:
+```bash
+cd lambdas/OFFAPI
+sam build
+sam deploy --guided
+# Stack name: AgentCorePocOpenFoodFactsAPIStack
+```
+
+#### Phase 2: Deploy CDK Infrastructure
+
+Update Lambda function names in `aws-infra/config/orchestration_config.py` if needed, then:
+
+```bash
+cd aws-infra
+cdk bootstrap  # First time only
+cdk deploy --all
+```
+
+This deploys all active stacks:
+- CloudPocNetworkStack
+- CloudPocStorageStack
+- CloudPocClusterStack
+- CloudPocRegistryStack
+- CloudPocSecretsStack
+- CloudPocOrchestrationStack (references Lambda ARNs)
+- CloudPocApiStack
+
+#### Phase 3: Retrieve API Key
+
+```bash
+aws apigateway get-api-keys --include-values \
+  --query "items[?name=='CloudPocChefApiKey'].value" --output text
+```
+
+### Testing the API
+
+```bash
+curl -X POST https://<api-id>.execute-api.<region>.amazonaws.com/prod/chef \
+  -H "x-api-key: <your-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Sugiereme un plato para cenar esta noche"}'
+```
+
+Response:
+```json
+{
+  "executionArn": "arn:aws:states:...",
+  "startDate": "2026-05-08T..."
+}
+```
+
+## Non-Functional Requirements Analysis
+
+### Scalability
+
+**Current Architecture**:
+- **API Gateway**: Automatically scales to handle request volume (throttled at 10 req/s)
+- **Step Functions**: Scales automatically, supports up to 5,000 concurrent executions per account
+- **Lambda Functions**: Auto-scales to handle concurrent invocations (default: 1,000 concurrent)
+- **VPC**: Sufficient IP space for current workload; can be expanded if needed
+
+**Scalability Enhancements** (if ECS stack is enabled):
+- ECS Service can scale horizontally with auto-scaling policies
+- Application Load Balancer can distribute traffic across multiple tasks
+
+### Performance
+
+**Latency Characteristics**:
+- API Gateway: ~50ms overhead
+- Step Functions: ~100ms per state transition
+- ChefApp Lambda: ~200ms cold start, ~50ms warm
+- OFFAPI Lambda: ~300ms cold start + external API call time (~500-1000ms)
+- Total end-to-end: 1-2 seconds typical
+
+**Optimizations**:
+- ARM64 architecture for Lambda (faster execution)
+- Lambda layers for shared dependencies
+- Provisioned concurrency can eliminate cold starts (additional cost)
+
+### Security
+
+**Implemented Security Controls**:
+- **API Authentication**: API Key required for all API Gateway requests
+- **Network Isolation**: VPC with security groups
+- **Encryption at Rest**: S3 bucket with SSE-S3, Secrets Manager
+- **Encryption in Transit**: HTTPS enforced on API Gateway and S3
+- **Least Privilege IAM**: Each service has minimal required permissions
+- **X-Ray Tracing**: Enabled for security audit trails
+- **CloudWatch Logging**: All services log to CloudWatch for monitoring
+- **ECR Image Scanning**: Automatic vulnerability scanning on push
+- **Private ECR**: Container images not publicly accessible
+
+**Additional Security Recommendations**:
+- Implement AWS WAF on API Gateway
+- Enable GuardDuty for threat detection
+- Use AWS Secrets Manager rotation for credentials
+- Implement VPC endpoints for private AWS service access
+- Enable CloudTrail for API audit logging
+
+### Reliability
+
+**High Availability**:
+- Multi-AZ VPC deployment
+- API Gateway: 99.95% SLA
+- Lambda: 99.95% SLA
+- Step Functions: 99.9% SLA
+- S3: 99.99% availability
+
+**Fault Tolerance**:
+- Lambda retry logic: 3 attempts with exponential backoff
+- Step Functions error handling with catch blocks
+- API Gateway integration error mapping
+
+**Monitoring & Observability**:
+- X-Ray distributed tracing
+- CloudWatch Logs (7-day retention)
+- CloudWatch Metrics for all services
+- Step Functions execution history
+
+### Maintainability
+
+**Infrastructure as Code**:
+- CDK for infrastructure (TypeScript-like Python)
+- SAM for Lambda functions
+- Configuration externalized in config files
+- Version controlled in Git
+
+**Operational Excellence**:
+- Separate stacks for isolation
+- Stack outputs for easy reference
+- Descriptive resource names
+- Comprehensive documentation
+
+### Cost Efficiency
+
+**Monthly Cost Estimate** (assuming moderate usage):
+
+| Service | Configuration | Estimated Cost |
+|---------|--------------|----------------|
+| API Gateway | 1M requests/month | $3.50 |
+| Step Functions | 10K executions/month | $0.25 |
+| Lambda (ChefApp) | 10K invocations, 256MB, 200ms avg | $0.40 |
+| Lambda (OFFAPI) | 5K invocations, 256MB, 500ms avg | $0.25 |
+| VPC | No NAT Gateway | $0.00 |
+| S3 | 10GB storage, 1K requests | $0.23 |
+| ECR | 5GB storage | $0.50 |
+| CloudWatch Logs | 1GB ingestion, 7-day retention | $0.50 |
+| Secrets Manager | 1 secret | $0.40 |
+| **Total** | | **~$6.00/month** |
+
+**Cost Optimization**:
+- No NAT Gateway saves ~$35/month
+- ARM64 Lambda ~20% cheaper than x86
+- 7-day log retention reduces storage costs
+- Serverless architecture: pay only for usage
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| API Key exposure | High | Rotate keys regularly, implement AWS WAF, consider Cognito |
+| Lambda cold starts | Medium | Use provisioned concurrency for critical paths |
+| Step Functions throttling | Medium | Request service quota increase if needed |
+| External API dependency (Open Food Facts) | Medium | Implement caching, fallback responses |
+| No automated backups | Low | S3 versioning can be enabled if needed |
+| Single region deployment | Medium | Multi-region can be added for DR |
+
+## Technology Stack
+
+**AWS Services**:
+- API Gateway (REST API)
+- AWS Step Functions (Standard Workflows)
+- AWS Lambda (Python 3.12, ARM64)
+- VPC, Internet Gateway, Security Groups
+- S3 (SSE-S3 encryption)
+- ECR (container registry)
+- ECS Fargate (infrastructure ready)
+- Secrets Manager
+- CloudWatch (Logs, Metrics, X-Ray)
+
+**Development Tools**:
+- AWS CDK (Python)
+- AWS SAM
+- Python 3.12 (aws-lambda-powertools, pydantic, requests)
+- Docker
+- Git
+
+## Next Steps
+
+1. **Enable ECS Stack**: Uncomment EcsStack in `app.py` to deploy Chef UI
+2. **Implement Caching**: Add ElastiCache or DynamoDB for API response caching
+3. **Add Authentication**: Replace API Key with Amazon Cognito
+4. **Monitoring Dashboard**: Create CloudWatch dashboard for metrics visualization
+5. **CI/CD Pipeline**: Implement GitHub Actions for automated deployments
+6. **Multi-Region**: Extend to multiple AWS regions for disaster recovery
+7. **Load Testing**: Perform load testing to validate scalability assumptions
+
+## References
+
+- [AWS CDK Documentation](https://docs.aws.amazon.com/cdk/)
+- [AWS SAM Documentation](https://docs.aws.amazon.com/serverless-application-model/)
+- [AWS Step Functions Best Practices](https://docs.aws.amazon.com/step-functions/latest/dg/best-practices.html)
+- [AWS Lambda Powertools](https://docs.powertools.aws.dev/lambda/python/)
+- [Open Food Facts API](https://world.openfoodfacts.org/data)
 
 When the commented-out stacks are activated, the complete architecture would be:
 

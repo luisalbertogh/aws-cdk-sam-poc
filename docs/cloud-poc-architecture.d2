@@ -1,5 +1,6 @@
 # Cloud POC AWS CDK Architecture Diagram
 # This diagram depicts the overall AWS infrastructure defined by the CDK code
+# UPDATED: Now includes active API Gateway, Step Functions, and Lambda functions
 
 direction: right
 
@@ -30,16 +31,105 @@ classes: {
     style: {
       font-size: 35
       bold: false
+      fill: "#ffffff"
+      stroke: "#2196f3"
+      stroke-width: 2
+    }
+  }
+  
+  lambda: {
+    style: {
+      fill: "#fff3e0"
+      stroke: "#ff9800"
+      stroke-width: 3
+      font-size: 38
+      bold: true
     }
   }
 }
 
 # AWS Region container
 aws-region: {
-  label: AWS Region (us-east-1)
+  label: AWS Region (eu-central-1)
   icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/aws_region.svg
   style: {
     font-size: 55
+    fill: "#e3f2fd"
+    stroke: "#1976d2"
+    stroke-width: 3
+  }
+  
+  # API Gateway Stack - ACTIVE
+  api-stack: {
+    label: "API Stack\n(CloudPocApiStack)\n[ACTIVE]"
+    class: active
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/api_gateway_red.svg
+    
+    # API Gateway
+    apigw: {
+      label: "API Gateway\nCloudPocChefApi\nPOST /chef"
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/api_gateway_red.svg
+      class: resource
+    }
+    
+    # API Key
+    apikey: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_role.svg
+      label: "API Key\nAuthentication"
+      class: resource
+      style: {
+        font-size: 30
+      }
+    }
+    
+    # CloudWatch Logs for API
+    api-logs: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/cloud_watch.svg
+      label: "CloudWatch Logs\n/aws/apigateway/CloudPocChefApi"
+      class: resource
+      style: {
+        font-size: 30
+      }
+    }
+  }
+  
+  # Orchestration Stack - NOW ACTIVE
+  orchestration-stack: {
+    label: "Orchestration Stack\n(CloudPocOrchestrationStack)\n[ACTIVE]"
+    class: active
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/scheduler.svg
+    
+    # Step Functions
+    sfn: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/scheduler.svg
+      label: "Step Functions\nHelloWorldStateMachine\n(Chef Workflow)"
+      class: resource
+    }
+    
+    # CloudWatch Logs for SFN
+    sfn-logs: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/cloud_watch.svg
+      label: "CloudWatch Logs\nState Machine Logs"
+      class: resource
+      style: {
+        font-size: 30
+      }
+    }
+    
+    # IAM Role
+    sfn-role: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_role.svg
+      label: "IAM Role\nExecution Role"
+      class: resource
+      style: {
+        font-size: 30
+      }
+    }
   }
   
   # Network Stack - ACTIVE
@@ -60,6 +150,9 @@ aws-region: {
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/internet_gw.svg
         label: "Internet Gateway"
         class: resource
+        style: {
+          font-size: 30
+        }
       }
       
       # Public Subnets
@@ -68,6 +161,9 @@ aws-region: {
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/public_subnet.svg
         label: "Public Subnet 1\nAZ-1"
         class: resource
+        style: {
+          font-size: 30
+        }
       }
       
       subnet2: {
@@ -75,6 +171,9 @@ aws-region: {
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/public_subnet.svg
         label: "Public Subnet 2\nAZ-2"
         class: resource
+        style: {
+          font-size: 30
+        }
       }
       
       # Security Group
@@ -83,7 +182,25 @@ aws-region: {
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/waf.svg
         label: "Security Group\nchef-ui-sg"
         class: resource
+        style: {
+          font-size: 30
+        }
       }
+    }
+  }
+  
+  # Cluster Stack - ACTIVE
+  cluster-stack: {
+    label: "Cluster Stack\n(CloudPocClusterStack)\n[ACTIVE]"
+    class: active
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs.svg
+    
+    # ECS Cluster
+    cluster: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs.svg
+      label: "ECS Fargate Cluster\n(Infrastructure Ready)"
+      class: resource
     }
   }
   
@@ -120,7 +237,7 @@ aws-region: {
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
         label: "chef-ui\nrepository"
         style: {
-          font-size: 30
+          font-size: 28
         }
       }
       
@@ -129,7 +246,7 @@ aws-region: {
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
         label: "chef-agent\nrepository"
         style: {
-          font-size: 30
+          font-size: 28
         }
       }
       
@@ -138,7 +255,7 @@ aws-region: {
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
         label: "nutritionist-agent\nrepository"
         style: {
-          font-size: 30
+          font-size: 28
         }
       }
       
@@ -147,7 +264,7 @@ aws-region: {
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
         label: "instructor-agent\nrepository"
         style: {
-          font-size: 30
+          font-size: 28
         }
       }
     }
@@ -168,57 +285,20 @@ aws-region: {
     }
   }
   
-  # Orchestration Stack - INACTIVE (commented out)
-  orchestration-stack: {
-    label: "Orchestration Stack\n(CloudPocOrchestrationStack)\n[COMMENTED OUT]"
-    class: inactive
-    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/scheduler.svg
-    
-    # Step Functions
-    sfn: {
-      shape: image
-      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/scheduler.svg
-      label: "Step Functions\nHello World Workflow\n(state machine)"
-      class: resource
-    }
-    
-    # CloudWatch Logs for SFN
-    sfn-logs: {
-      shape: image
-      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/cloud_watch.svg
-      label: "CloudWatch Logs\nState Machine Logs"
-      class: resource
-    }
-    
-    # IAM Role
-    sfn-role: {
-      shape: image
-      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_role.svg
-      label: "IAM Role\nExecution Role"
-      class: resource
-    }
-  }
-  
   # ECS Stack - INACTIVE (commented out)
   ecs-stack: {
     label: "ECS Stack\n(CloudPocEcsStack)\n[COMMENTED OUT]"
     class: inactive
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs.svg
     
-    # ECS Cluster
-    ecs-cluster: {
-      label: "ECS Fargate Cluster"
-      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs.svg
+    # ECS Service
+    ecs-service: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs_service.svg
+      label: "Chef UI Service\nFargate (ARM64)\n0.5 vCPU, 2GB RAM"
       class: resource
-      
-      # ECS Service
-      ecs-service: {
-        shape: image
-        icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs_service.svg
-        label: "Chef UI Service\nFargate (ARM64)\n0.5 vCPU, 2GB RAM"
-        style: {
-          font-size: 30
-        }
+      style: {
+        font-size: 30
       }
     }
     
@@ -228,6 +308,9 @@ aws-region: {
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/cloud_watch.svg
       label: "CloudWatch Logs\n/aws/ecs/chef-ui"
       class: resource
+      style: {
+        font-size: 28
+      }
     }
     
     # IAM Task Role
@@ -236,6 +319,36 @@ aws-region: {
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_role.svg
       label: "IAM Task Role\nchef-ui-task-role"
       class: resource
+      style: {
+        font-size: 28
+      }
+    }
+  }
+}
+
+# Lambda Functions (SAM-deployed, outside main region container for clarity)
+lambda-functions: {
+  label: "Lambda Functions\n(SAM-deployed)"
+  class: lambda
+  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/lambda.svg
+  
+  # ChefApp Lambda
+  chef-lambda: {
+    shape: image
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/lambda.svg
+    label: "ChefApp Lambda\nCloudCorePocChefAppStack-ChefApp\nPython 3.12 ARM64"
+    style: {
+      font-size: 32
+    }
+  }
+  
+  # OFFAPI Lambda
+  offapi-lambda: {
+    shape: image
+    icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/lambda.svg
+    label: "OFFAPI Lambda\nCloudPocOpenFoodFactsAPIStack-OFFAPICaller\nPython 3.12 ARM64"
+    style: {
+      font-size: 32
     }
   }
 }
@@ -270,37 +383,134 @@ cicd: {
   }
 }
 
-# Connections - Active Infrastructure
+# External API
+open-food-facts: {
+  shape: image
+  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/others/internet.svg
+  label: "Open Food Facts API\n(External)"
+  style: {
+    font-size: 40
+  }
+}
 
-# Internet to VPC
-users -> internet: "HTTPS Requests" {
+# ============================================================================
+# ACTIVE INFRASTRUCTURE CONNECTIONS
+# ============================================================================
+
+# User to API Gateway flow
+users -> internet: "HTTPS\nRequests" {
   style: {
     font-size: 35
     stroke: "#4caf50"
+    stroke-width: 4
+    bold: true
+  }
+}
+
+internet -> aws-region.api-stack.apigw: "POST /chef\n(with API Key)" {
+  style: {
+    font-size: 35
+    stroke: "#4caf50"
+    stroke-width: 4
+    bold: true
+  }
+}
+
+# API Gateway to Step Functions
+aws-region.api-stack.apigw -> aws-region.orchestration-stack.sfn: "starts\nexecution" {
+  style: {
+    font-size: 35
+    stroke: "#4caf50"
+    stroke-width: 4
+    bold: true
+  }
+}
+
+# Step Functions to Lambda functions
+aws-region.orchestration-stack.sfn -> lambda-functions.chef-lambda: "1. invokes\nChefApp" {
+  style: {
+    font-size: 35
+    stroke: "#ff9800"
+    stroke-width: 4
+    bold: true
+  }
+}
+
+lambda-functions.chef-lambda -> aws-region.orchestration-stack.sfn: "returns\nsuggestions" {
+  style: {
+    font-size: 35
+    stroke: "#ff9800"
+    stroke-width: 3
+    stroke-dash: 3
+  }
+}
+
+aws-region.orchestration-stack.sfn -> lambda-functions.offapi-lambda: "2. invokes\nOFFAPI\n(conditional)" {
+  style: {
+    font-size: 35
+    stroke: "#ff9800"
+    stroke-width: 4
+    bold: true
+  }
+}
+
+lambda-functions.offapi-lambda -> aws-region.orchestration-stack.sfn: "returns\nnutritional data" {
+  style: {
+    font-size: 35
+    stroke: "#ff9800"
+    stroke-width: 3
+    stroke-dash: 3
+  }
+}
+
+# OFFAPI Lambda calls external API
+lambda-functions.offapi-lambda -> open-food-facts: "queries\nproducts" {
+  style: {
+    font-size: 35
+    stroke: "#2196f3"
     stroke-width: 3
   }
 }
 
-internet -> aws-region.network-stack.vpc.igw: "via IGW" {
+# Step Functions to CloudWatch
+aws-region.orchestration-stack.sfn -> aws-region.orchestration-stack.sfn-logs: "sends logs" {
   style: {
-    font-size: 35
-    stroke: "#4caf50"
-    stroke-width: 3
-  }
-}
-
-# IGW to Subnets
-aws-region.network-stack.vpc.igw -> aws-region.network-stack.vpc.subnet1: "routes traffic" {
-  style: {
-    font-size: 35
+    font-size: 32
     stroke: "#4caf50"
     stroke-width: 2
   }
 }
 
-aws-region.network-stack.vpc.igw -> aws-region.network-stack.vpc.subnet2: "routes traffic" {
+# API Gateway to CloudWatch
+aws-region.api-stack.apigw -> aws-region.api-stack.api-logs: "access logs" {
   style: {
-    font-size: 35
+    font-size: 32
+    stroke: "#4caf50"
+    stroke-width: 2
+  }
+}
+
+# Internet to VPC (for future ECS)
+internet -> aws-region.network-stack.vpc.igw: "via IGW\n(ready)" {
+  style: {
+    font-size: 32
+    stroke: "#4caf50"
+    stroke-width: 2
+  }
+}
+
+# IGW to Subnets
+aws-region.network-stack.vpc.igw -> aws-region.network-stack.vpc.subnet1: "routes" {
+  style: {
+    font-size: 30
+    stroke: "#4caf50"
+    stroke-width: 2
+  }
+}
+
+aws-region.network-stack.vpc.igw -> aws-region.network-stack.vpc.subnet2: "routes" {
+  style: {
+    font-size: 30
     stroke: "#4caf50"
     stroke-width: 2
   }
@@ -309,7 +519,7 @@ aws-region.network-stack.vpc.igw -> aws-region.network-stack.vpc.subnet2: "route
 # Security Group protects subnets
 aws-region.network-stack.vpc.sg -> aws-region.network-stack.vpc.subnet1: "protects" {
   style: {
-    font-size: 35
+    font-size: 30
     stroke: "#4caf50"
     stroke-width: 2
     stroke-dash: 3
@@ -318,7 +528,7 @@ aws-region.network-stack.vpc.sg -> aws-region.network-stack.vpc.subnet1: "protec
 
 aws-region.network-stack.vpc.sg -> aws-region.network-stack.vpc.subnet2: "protects" {
   style: {
-    font-size: 35
+    font-size: 30
     stroke: "#4caf50"
     stroke-width: 2
     stroke-dash: 3
@@ -326,21 +536,23 @@ aws-region.network-stack.vpc.sg -> aws-region.network-stack.vpc.subnet2: "protec
 }
 
 # CI/CD to ECR
-cicd -> aws-region.registry-stack.ecr-registry: "pushes images" {
+cicd -> aws-region.registry-stack.ecr-registry: "pushes\nimages" {
   style: {
-    font-size: 35
+    font-size: 32
     stroke: "#4caf50"
     stroke-width: 3
     animated: true
   }
 }
 
-# Connections - Inactive Infrastructure (if enabled)
+# ============================================================================
+# INACTIVE INFRASTRUCTURE CONNECTIONS (if ECS enabled)
+# ============================================================================
 
 # ECS Service would pull from ECR
-aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.registry-stack.ecr-registry.chef-ui-repo: "pulls image" {
+aws-region.ecs-stack.ecs-service -> aws-region.registry-stack.ecr-registry.chef-ui-repo: "pulls image" {
   style: {
-    font-size: 35
+    font-size: 32
     stroke: "#9e9e9e"
     stroke-width: 2
     stroke-dash: 5
@@ -348,9 +560,9 @@ aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.registry-stack.ecr-re
 }
 
 # ECS Service would use Secrets
-aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.secrets-stack.secret: "reads credentials" {
+aws-region.ecs-stack.ecs-service -> aws-region.secrets-stack.secret: "reads\ncredentials" {
   style: {
-    font-size: 35
+    font-size: 32
     stroke: "#9e9e9e"
     stroke-width: 2
     stroke-dash: 5
@@ -358,9 +570,9 @@ aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.secrets-stack.secret:
 }
 
 # ECS Service would run in VPC
-aws-region.network-stack.vpc.subnet1 -> aws-region.ecs-stack.ecs-cluster.ecs-service: "hosts tasks" {
+aws-region.network-stack.vpc.subnet1 -> aws-region.ecs-stack.ecs-service: "hosts tasks" {
   style: {
-    font-size: 35
+    font-size: 32
     stroke: "#9e9e9e"
     stroke-width: 2
     stroke-dash: 5
@@ -368,9 +580,9 @@ aws-region.network-stack.vpc.subnet1 -> aws-region.ecs-stack.ecs-cluster.ecs-ser
 }
 
 # ECS would send logs to CloudWatch
-aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.ecs-stack.ecs-logs: "sends logs" {
+aws-region.ecs-stack.ecs-service -> aws-region.ecs-stack.ecs-logs: "sends logs" {
   style: {
-    font-size: 35
+    font-size: 32
     stroke: "#9e9e9e"
     stroke-width: 2
     stroke-dash: 5
@@ -378,19 +590,19 @@ aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.ecs-stack.ecs-logs: "
 }
 
 # ECS Service would invoke Step Functions
-aws-region.ecs-stack.ecs-cluster.ecs-service -> aws-region.orchestration-stack.sfn: "starts executions" {
+aws-region.ecs-stack.ecs-service -> aws-region.orchestration-stack.sfn: "starts\nexecutions" {
   style: {
-    font-size: 35
+    font-size: 32
     stroke: "#9e9e9e"
     stroke-width: 2
     stroke-dash: 5
   }
 }
 
-# Step Functions would send logs to CloudWatch
-aws-region.orchestration-stack.sfn -> aws-region.orchestration-stack.sfn-logs: "sends logs" {
+# ECS would use Cluster
+aws-region.cluster-stack.cluster -> aws-region.ecs-stack.ecs-service: "hosts" {
   style: {
-    font-size: 35
+    font-size: 32
     stroke: "#9e9e9e"
     stroke-width: 2
     stroke-dash: 5
@@ -401,17 +613,66 @@ aws-region.orchestration-stack.sfn -> aws-region.orchestration-stack.sfn-logs: "
 legend: {
   label: "Legend"
   style: {
-    font-size: 40
+    font-size: 50
     bold: true
+    stroke: "#000000"
+    stroke-width: 2
   }
   
-  active-stack: {
+  active-box: {
     label: "Active Stack\n(Deployed)"
     class: active
+    style: {
+      font-size: 35
+    }
   }
   
-  inactive-stack: {
+  lambda-box: {
+    label: "Lambda Function\n(SAM-deployed)"
+    class: lambda
+    style: {
+      font-size: 35
+    }
+  }
+  
+  inactive-box: {
     label: "Inactive Stack\n(Commented Out)"
     class: inactive
+    style: {
+      font-size: 35
+    }
+  }
+  
+  connection-active: {
+    label: "Active Connection"
+    shape: text
+    style: {
+      font-size: 32
+    }
+  }
+  
+  connection-inactive: {
+    label: "Inactive Connection"
+    shape: text
+    style: {
+      font-size: 32
+    }
+  }
+  
+  # Show connection examples
+  connection-active -> connection-inactive: {
+    style: {
+      stroke: "#4caf50"
+      stroke-width: 3
+    }
+  }
+  
+  connection-inactive -> active-box: {
+    style: {
+      stroke: "#9e9e9e"
+      stroke-width: 2
+      stroke-dash: 5
+    }
   }
 }
+
