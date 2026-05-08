@@ -28,6 +28,11 @@ def lambda_handler(event: dict, context: LambdaContext) -> dict:
                 "Salmón al horno con espárragos"
             ]
         }
+    elif input:
+        logger.info(f"El cliente quiere comer: {input}")
+        final_results = {
+            "plato": input
+        }
 
     return {
         "statusCode": 200,
