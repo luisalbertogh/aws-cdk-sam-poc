@@ -23,9 +23,9 @@ def lambda_handler(event: dict, context: LambdaContext) -> dict:
         final_results = {
             "plato": input,
             "sugerencias": [
-                "Ensalada César con pollo a la parrilla",
-                "Pasta al pesto con tomates cherry",
-                "Salmón al horno con espárragos"
+                "Paella",
+                "Pasta",
+                "Lentejas"
             ]
         }
     elif input:

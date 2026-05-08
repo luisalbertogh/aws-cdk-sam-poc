@@ -1,18 +1,98 @@
 {
-  "Comment": "A simple Hello World workflow for the Cloud POC",
-  "StartAt": "HelloWorld",
+  "Comment": "Chef App workflow - Invoke Lambda for dish suggestions and validate response",
+  "StartAt": "InvokeChefLambda",
   "States": {
-    "HelloWorld": {
-      "Type": "Pass",
-      "Result": {
-        "message": "Hello World from Step Functions!",
-        "timestamp": "2026-05-03"
+    "InvokeChefLambda": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "REPLACE_WITH_CHEF_LAMBDA_ARN",
+        "Payload.$": "$"
       },
-      "ResultPath": "$.hello",
-      "Next": "Success"
+      "ResultSelector": {
+        "statusCode.$": "$.Payload.statusCode",
+        "body.$": "States.StringToJson($.Payload.body)"
+      },
+      "ResultPath": "$.lambdaResult",
+      "Next": "CheckSuggestions",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "LambdaError"
+        }
+      ]
     },
-    "Success": {
-      "Type": "Succeed"
+    "CheckSuggestions": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.lambdaResult.body.sugerencias",
+          "IsPresent": true,
+          "Next": "ReturnSuggestions"
+        }
+      ],
+      "Default": "InvokeNextLambda"
+    },
+    "ReturnSuggestions": {
+      "Type": "Pass",
+      "InputPath": "$.lambdaResult.body",
+      "End": true
+    },
+    "InvokeNextLambda": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "REPLACE_WITH_NEXT_LAMBDA_ARN",
+        "Payload.$": "$.lambdaResult.body"
+      },
+      "ResultSelector": {
+        "statusCode.$": "$.Payload.statusCode",
+        "body.$": "States.StringToJson($.Payload.body)"
+      },
+      "ResultPath": "$.finalResult",
+      "Next": "ReturnFinalResult",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "LambdaError"
+        }
+      ]
+    },
+    "ReturnFinalResult": {
+      "Type": "Pass",
+      "InputPath": "$.finalResult.body",
+      "End": true
+    },
+    "LambdaError": {
+      "Type": "Fail",
+      "Error": "LambdaInvocationError",
+      "Cause": "Failed to invoke Lambda function"
     }
   }
 }
