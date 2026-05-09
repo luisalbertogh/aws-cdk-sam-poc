@@ -1,11 +1,15 @@
 # Cloud POC AWS CDK Architecture Diagram
-# This diagram depicts the overall AWS infrastructure defined by the CDK code
-# UPDATED: Now includes active API Gateway, Step Functions, and Lambda functions
+# Depicts the active AWS infrastructure defined by the CDK code (7 stacks + 2 SAM Lambda functions)
+# ECS Fargate service stack is omitted (commented out in app.py)
 
 direction: right
 
-# Define reusable classes for styling
+# ============================================================================
+# REUSABLE STYLE CLASSES
+# ============================================================================
+
 classes: {
+  # Style for active CDK stacks
   active: {
     style: {
       fill: "#e8f5e9"
@@ -15,18 +19,8 @@ classes: {
       bold: true
     }
   }
-  
-  inactive: {
-    style: {
-      fill: "#f5f5f5"
-      stroke: "#9e9e9e"
-      stroke-width: 2
-      stroke-dash: 5
-      font-size: 40
-      bold: true
-    }
-  }
-  
+
+  # Style for AWS resources inside stacks
   resource: {
     style: {
       font-size: 35
@@ -36,21 +30,75 @@ classes: {
       stroke-width: 2
     }
   }
-  
+
+  # Style for SAM-deployed Lambda functions
   lambda: {
     style: {
       fill: "#fff3e0"
       stroke: "#ff9800"
       stroke-width: 3
-      font-size: 38
+      font-size: 40
       bold: true
     }
   }
+
+  # Invisible spacer for grid layout
+  invisible: {
+    style.opacity: 0
+    label: ""
+  }
 }
 
-# AWS Region container
+# ============================================================================
+# EXTERNAL ACTORS
+# ============================================================================
+
+# Internet users who call the API
+users: {
+  shape: image
+  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/users.svg
+  label: "Internet Users"
+  style: {
+    font-size: 45
+  }
+}
+
+# Internet (routing layer)
+internet: {
+  shape: image
+  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/others/internet.svg
+  label: "Internet"
+  style: {
+    font-size: 45
+  }
+}
+
+# CI/CD pipeline that pushes images to ECR
+cicd: {
+  shape: image
+  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/others/github.svg
+  label: "GitHub Actions\nCI/CD Pipeline"
+  style: {
+    font-size: 45
+  }
+}
+
+# Third-party nutritional data provider
+open-food-facts: {
+  shape: image
+  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/others/internet.svg
+  label: "Open Food Facts API\n(External)"
+  style: {
+    font-size: 40
+  }
+}
+
+# ============================================================================
+# AWS REGION BOUNDARY
+# ============================================================================
+
 aws-region: {
-  label: AWS Region (eu-central-1)
+  label: "AWS Region (eu-central-1)"
   icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/aws_region.svg
   style: {
     font-size: 55
@@ -58,32 +106,45 @@ aws-region: {
     stroke: "#1976d2"
     stroke-width: 3
   }
-  
-  # API Gateway Stack - ACTIVE
+
+  # --------------------------------------------------------------------------
+  # API STACK — REST API Gateway entry point with API Key auth and throttling
+  # --------------------------------------------------------------------------
   api-stack: {
-    label: "API Stack\n(CloudPocApiStack)\n[ACTIVE]"
+    label: "API Stack\n(CloudPocApiStack)"
     class: active
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/api_gateway_red.svg
-    
-    # API Gateway
+
+    # REST API handling POST /chef with X-Ray tracing enabled
     apigw: {
-      label: "API Gateway\nCloudPocChefApi\nPOST /chef"
+      label: "API Gateway\nCloudPocChefApi\nREST · POST /chef · prod"
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/api_gateway_red.svg
       class: resource
     }
-    
-    # API Key
+
+    # API key required on the /chef POST method
     apikey: {
       shape: image
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_role.svg
-      label: "API Key\nAuthentication"
+      label: "API Key\nCloudPocChefApiKey"
       class: resource
       style: {
         font-size: 30
       }
     }
-    
-    # CloudWatch Logs for API
+
+    # Usage plan with rate and burst throttling
+    usageplan: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_policies.svg
+      label: "Usage Plan\n10 req/s · burst 20"
+      class: resource
+      style: {
+        font-size: 30
+      }
+    }
+
+    # Access log group for the API Gateway stage
     api-logs: {
       shape: image
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/cloud_watch.svg
@@ -94,22 +155,24 @@ aws-region: {
       }
     }
   }
-  
-  # Orchestration Stack - NOW ACTIVE
+
+  # --------------------------------------------------------------------------
+  # ORCHESTRATION STACK — Step Functions workflow with X-Ray and CloudWatch
+  # --------------------------------------------------------------------------
   orchestration-stack: {
-    label: "Orchestration Stack\n(CloudPocOrchestrationStack)\n[ACTIVE]"
+    label: "Orchestration Stack\n(CloudPocOrchestrationStack)"
     class: active
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/scheduler.svg
-    
-    # Step Functions
+
+    # State machine implementing the chef workflow (InvokeChefLambda → CheckSuggestions → InvokeNextLambda)
     sfn: {
       shape: image
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/scheduler.svg
-      label: "Step Functions\nHelloWorldStateMachine\n(Chef Workflow)"
+      label: "Step Functions\nHelloWorldStateMachine"
       class: resource
     }
-    
-    # CloudWatch Logs for SFN
+
+    # CloudWatch log group capturing ALL-level execution data
     sfn-logs: {
       shape: image
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/cloud_watch.svg
@@ -119,32 +182,34 @@ aws-region: {
         font-size: 30
       }
     }
-    
-    # IAM Role
+
+    # IAM role granting Step Functions permission to invoke Lambda and write logs
     sfn-role: {
       shape: image
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_role.svg
-      label: "IAM Role\nExecution Role"
+      label: "IAM Role\nSFN Execution Role"
       class: resource
       style: {
         font-size: 30
       }
     }
   }
-  
-  # Network Stack - ACTIVE
+
+  # --------------------------------------------------------------------------
+  # NETWORK STACK — VPC with public subnets and internet gateway
+  # --------------------------------------------------------------------------
   network-stack: {
-    label: "Network Stack\n(CloudPocNetworkStack)\n[ACTIVE]"
+    label: "Network Stack\n(CloudPocNetworkStack)"
     class: active
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/vpc.svg
-    
-    # VPC
+
+    # VPC 10.0.0.0/27 — minimal CIDR for POC, 0 NAT Gateways
     vpc: {
       label: "VPC\n10.0.0.0/27"
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/vpc.svg
       class: resource
-      
-      # Internet Gateway
+
+      # Internet gateway providing outbound/inbound internet access
       igw: {
         shape: image
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/internet_gw.svg
@@ -154,29 +219,30 @@ aws-region: {
           font-size: 30
         }
       }
-      
-      # Public Subnets
+
+      # Public subnet in AZ-1 (/28 — 16 IPs)
       subnet1: {
         shape: image
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/public_subnet.svg
-        label: "Public Subnet 1\nAZ-1"
+        label: "Public Subnet 1\nAZ-1 /28"
         class: resource
         style: {
           font-size: 30
         }
       }
-      
+
+      # Public subnet in AZ-2 (/28 — 16 IPs)
       subnet2: {
         shape: image
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/public_subnet.svg
-        label: "Public Subnet 2\nAZ-2"
+        label: "Public Subnet 2\nAZ-2 /28"
         class: resource
         style: {
           font-size: 30
         }
       }
-      
-      # Security Group
+
+      # Security group chef-ui-sg allowing ports 80/443/8080/8443
       sg: {
         shape: image
         icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/waf.svg
@@ -188,140 +254,122 @@ aws-region: {
       }
     }
   }
-  
-  # Cluster Stack - ACTIVE
+
+  # --------------------------------------------------------------------------
+  # CLUSTER STACK — ECS Fargate cluster (no services deployed yet)
+  # --------------------------------------------------------------------------
   cluster-stack: {
-    label: "Cluster Stack\n(CloudPocClusterStack)\n[ACTIVE]"
+    label: "Cluster Stack\n(CloudPocClusterStack)"
     class: active
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs.svg
-    
-    # ECS Cluster
+
+    # Fargate cluster — infrastructure ready for future ECS service deployment
     cluster: {
       shape: image
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecs.svg
-      label: "ECS Fargate Cluster\n(Infrastructure Ready)"
+      label: "ECS Fargate Cluster\nchef-assistant-cluster"
       class: resource
     }
+
+    # Task execution role with ECS, ECR, Secrets Manager, and CloudWatch permissions
+    exec-role: {
+      shape: image
+      icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/iam_role.svg
+      label: "IAM Task Execution Role\nchef-ui-ecs-task-execution-role"
+      class: resource
+      style: {
+        font-size: 30
+      }
+    }
   }
-  
-  # Storage Stack - ACTIVE
+
+  # --------------------------------------------------------------------------
+  # STORAGE STACK — Private S3 bucket with SSE-S3 encryption
+  # --------------------------------------------------------------------------
   storage-stack: {
-    label: "Storage Stack\n(CloudPocStorageStack)\n[ACTIVE]"
+    label: "Storage Stack\n(CloudPocStorageStack)"
     class: active
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/s3_bucket.svg
-    
-    # S3 Bucket
+
+    # Auto-named S3 bucket — SSE-S3, block all public access, SSL enforced
     s3: {
       shape: image
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/s3_bucket.svg
-      label: "S3 Bucket\nSSE-S3 Encryption\nPrivate Access"
+      label: "S3 Bucket\nSSE-S3 · Private · SSL"
       class: resource
     }
   }
-  
-  # Registry Stack - ACTIVE
+
+  # --------------------------------------------------------------------------
+  # REGISTRY STACK — ECR repository for Chef UI container images
+  # --------------------------------------------------------------------------
   registry-stack: {
-    label: "Registry Stack\n(CloudPocRegistryStack)\n[ACTIVE]"
+    label: "Registry Stack\n(CloudPocRegistryStack)"
     class: active
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
-    
-    # ECR Repository
+
+    # ECR repo for chef-ui images — scan on push enabled, 1-day untagged expiry
     chef-ui-repo: {
       shape: image
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/ecr.svg
-      label: "chef-ui\nrepository"
+      label: "ECR Repository\nchef-ui"
       class: resource
     }
   }
-  
-  # Secrets Stack - ACTIVE
+
+  # --------------------------------------------------------------------------
+  # SECRETS STACK — Secrets Manager for Chainlit auth credentials
+  # --------------------------------------------------------------------------
   secrets-stack: {
-    label: "Secrets Stack\n(CloudPocSecretsStack)\n[ACTIVE]"
+    label: "Secrets Stack\n(CloudPocSecretsStack)"
     class: active
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/secrets.svg
-    
-    # Secrets Manager Secret
+
+    # RETAIN policy — never destroyed; holds CHAINLIT_AUTH_SECRET, user, password
     secret: {
       shape: image
       icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/secrets.svg
-      label: "Secrets Manager\nchef-ui-login-passwords\n(Chainlit Auth)"
+      label: "Secrets Manager\nchef-ui-login-passwords"
       class: resource
     }
   }
 }
 
-# Lambda Functions (SAM-deployed, outside main region container for clarity)
+# ============================================================================
+# LAMBDA FUNCTIONS (SAM-deployed — outside CDK stacks)
+# ============================================================================
+
 lambda-functions: {
   label: "Lambda Functions\n(SAM-deployed)"
   class: lambda
   icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/lambda.svg
-  
-  # ChefApp Lambda
+
+  # ChefApp Lambda — returns dish suggestions (Python 3.12 ARM64)
   chef-lambda: {
     shape: image
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/lambda.svg
-    label: "ChefApp Lambda\nCloudCorePocChefAppStack-ChefApp\nPython 3.12 ARM64"
+    label: "ChefApp Lambda\nPython 3.12 · ARM64"
     style: {
       font-size: 32
     }
   }
-  
-  # OFFAPI Lambda
+
+  # OFFAPI Lambda — queries Open Food Facts for nutritional data (Python 3.12 ARM64)
   offapi-lambda: {
     shape: image
     icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/lambda.svg
-    label: "OFFAPI Lambda\nCloudPocOpenFoodFactsAPIStack-OFFAPICaller\nPython 3.12 ARM64"
+    label: "OFFAPI Lambda\nPython 3.12 · ARM64"
     style: {
       font-size: 32
     }
   }
 }
 
-# External Users
-users: {
-  shape: image
-  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/aws/users.svg
-  label: "Internet Users"
-  style: {
-    font-size: 45
-  }
-}
-
-# Internet
-internet: {
-  shape: image
-  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/others/internet.svg
-  label: "Internet"
-  style: {
-    font-size: 45
-  }
-}
-
-# CI/CD Pipeline
-cicd: {
-  shape: image
-  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/others/github.svg
-  label: "GitHub Actions\nCI/CD Pipeline"
-  style: {
-    font-size: 45
-  }
-}
-
-# External API
-open-food-facts: {
-  shape: image
-  icon: ../../../.copilot/skills/d2-sketcher/assets/icons/others/internet.svg
-  label: "Open Food Facts API\n(External)"
-  style: {
-    font-size: 40
-  }
-}
-
 # ============================================================================
-# ACTIVE INFRASTRUCTURE CONNECTIONS
+# CONNECTIONS — MAIN REQUEST FLOW
 # ============================================================================
 
-# User to API Gateway flow
+# Users reach the API via HTTPS through the internet
 users -> internet: "HTTPS\nRequests" {
   style: {
     font-size: 35
@@ -331,7 +379,8 @@ users -> internet: "HTTPS\nRequests" {
   }
 }
 
-internet -> aws-region.api-stack.apigw: "POST /chef\n(with API Key)" {
+# Internet routes POST /chef with API Key to API Gateway
+internet -> aws-region.api-stack.apigw: "POST /chef\n(API Key)" {
   style: {
     font-size: 35
     stroke: "#4caf50"
@@ -340,7 +389,7 @@ internet -> aws-region.api-stack.apigw: "POST /chef\n(with API Key)" {
   }
 }
 
-# API Gateway to Step Functions
+# API Gateway starts a Step Functions execution (direct service integration)
 aws-region.api-stack.apigw -> aws-region.orchestration-stack.sfn: "starts\nexecution" {
   style: {
     font-size: 35
@@ -350,8 +399,12 @@ aws-region.api-stack.apigw -> aws-region.orchestration-stack.sfn: "starts\nexecu
   }
 }
 
-# Step Functions to Lambda functions
-aws-region.orchestration-stack.sfn -> lambda-functions.chef-lambda: "1. invokes\nChefApp" {
+# ============================================================================
+# CONNECTIONS — WORKFLOW ORCHESTRATION
+# ============================================================================
+
+# Step 1: State machine invokes ChefApp Lambda for dish suggestions
+aws-region.orchestration-stack.sfn -> lambda-functions.chef-lambda: "1. invoke\nChefApp" {
   style: {
     font-size: 35
     stroke: "#ff9800"
@@ -360,7 +413,8 @@ aws-region.orchestration-stack.sfn -> lambda-functions.chef-lambda: "1. invokes\
   }
 }
 
-lambda-functions.chef-lambda -> aws-region.orchestration-stack.sfn: "returns\nsuggestions" {
+# ChefApp returns suggestions back to the state machine
+lambda-functions.chef-lambda -> aws-region.orchestration-stack.sfn: "dish\nsuggestions" {
   style: {
     font-size: 35
     stroke: "#ff9800"
@@ -369,7 +423,8 @@ lambda-functions.chef-lambda -> aws-region.orchestration-stack.sfn: "returns\nsu
   }
 }
 
-aws-region.orchestration-stack.sfn -> lambda-functions.offapi-lambda: "2. invokes\nOFFAPI\n(conditional)" {
+# Step 2 (conditional): State machine invokes OFFAPI if sugerencias is absent
+aws-region.orchestration-stack.sfn -> lambda-functions.offapi-lambda: "2. invoke\nOFFAPI (conditional)" {
   style: {
     font-size: 35
     stroke: "#ff9800"
@@ -378,7 +433,8 @@ aws-region.orchestration-stack.sfn -> lambda-functions.offapi-lambda: "2. invoke
   }
 }
 
-lambda-functions.offapi-lambda -> aws-region.orchestration-stack.sfn: "returns\nnutritional data" {
+# OFFAPI returns nutritional data back to the state machine
+lambda-functions.offapi-lambda -> aws-region.orchestration-stack.sfn: "nutritional\ndata" {
   style: {
     font-size: 35
     stroke: "#ff9800"
@@ -387,7 +443,7 @@ lambda-functions.offapi-lambda -> aws-region.orchestration-stack.sfn: "returns\n
   }
 }
 
-# OFFAPI Lambda calls external API
+# OFFAPI Lambda queries the external Open Food Facts REST API
 lambda-functions.offapi-lambda -> open-food-facts: "queries\nproducts" {
   style: {
     font-size: 35
@@ -396,8 +452,12 @@ lambda-functions.offapi-lambda -> open-food-facts: "queries\nproducts" {
   }
 }
 
-# Step Functions to CloudWatch
-aws-region.orchestration-stack.sfn -> aws-region.orchestration-stack.sfn-logs: "sends logs" {
+# ============================================================================
+# CONNECTIONS — OBSERVABILITY (CloudWatch logs)
+# ============================================================================
+
+# Step Functions emits execution logs to CloudWatch
+aws-region.orchestration-stack.sfn -> aws-region.orchestration-stack.sfn-logs: "execution\nlogs" {
   style: {
     font-size: 32
     stroke: "#4caf50"
@@ -405,8 +465,8 @@ aws-region.orchestration-stack.sfn -> aws-region.orchestration-stack.sfn-logs: "
   }
 }
 
-# API Gateway to CloudWatch
-aws-region.api-stack.apigw -> aws-region.api-stack.api-logs: "access logs" {
+# API Gateway emits access logs to CloudWatch
+aws-region.api-stack.apigw -> aws-region.api-stack.api-logs: "access\nlogs" {
   style: {
     font-size: 32
     stroke: "#4caf50"
@@ -414,8 +474,12 @@ aws-region.api-stack.apigw -> aws-region.api-stack.api-logs: "access logs" {
   }
 }
 
-# Internet to VPC (for future ECS)
-internet -> aws-region.network-stack.vpc.igw: "via IGW\n(ready)" {
+# ============================================================================
+# CONNECTIONS — NETWORK ROUTING
+# ============================================================================
+
+# Internet traffic enters the VPC through the Internet Gateway
+internet -> aws-region.network-stack.vpc.igw: "routes\nvia IGW" {
   style: {
     font-size: 32
     stroke: "#4caf50"
@@ -423,7 +487,7 @@ internet -> aws-region.network-stack.vpc.igw: "via IGW\n(ready)" {
   }
 }
 
-# IGW to Subnets
+# IGW forwards traffic to both public subnets
 aws-region.network-stack.vpc.igw -> aws-region.network-stack.vpc.subnet1: "routes" {
   style: {
     font-size: 30
@@ -440,7 +504,7 @@ aws-region.network-stack.vpc.igw -> aws-region.network-stack.vpc.subnet2: "route
   }
 }
 
-# Security Group protects subnets
+# Security group guards both public subnets (ports 80/443/8080/8443)
 aws-region.network-stack.vpc.sg -> aws-region.network-stack.vpc.subnet1: "protects" {
   style: {
     font-size: 30
@@ -459,7 +523,11 @@ aws-region.network-stack.vpc.sg -> aws-region.network-stack.vpc.subnet2: "protec
   }
 }
 
-# CI/CD to ECR
+# ============================================================================
+# CONNECTIONS — CI/CD & SECRETS
+# ============================================================================
+
+# GitHub Actions pushes container images to the ECR repository
 cicd -> aws-region.registry-stack.chef-ui-repo: "pushes\nimages" {
   style: {
     font-size: 32
@@ -469,7 +537,20 @@ cicd -> aws-region.registry-stack.chef-ui-repo: "pushes\nimages" {
   }
 }
 
-# Legend
+# ECS task execution role reads Chainlit auth credentials at runtime
+aws-region.cluster-stack.exec-role -> aws-region.secrets-stack.secret: "reads\nsecrets" {
+  style: {
+    font-size: 32
+    stroke: "#9c27b0"
+    stroke-width: 2
+    stroke-dash: 3
+  }
+}
+
+# ============================================================================
+# LEGEND
+# ============================================================================
+
 legend: {
   label: "Legend"
   style: {
@@ -478,15 +559,17 @@ legend: {
     stroke: "#000000"
     stroke-width: 2
   }
-  
+
+  # Active CDK stack indicator
   active-box: {
-    label: "Active Stack\n(Deployed)"
+    label: "Active CDK Stack\n(Deployed)"
     class: active
     style: {
       font-size: 35
     }
   }
-  
+
+  # SAM-deployed Lambda function indicator
   lambda-box: {
     label: "Lambda Function\n(SAM-deployed)"
     class: lambda
@@ -494,45 +577,38 @@ legend: {
       font-size: 35
     }
   }
-  
-  inactive-box: {
-    label: "Inactive Stack\n(Commented Out)"
-    class: inactive
-    style: {
-      font-size: 35
-    }
-  }
-  
-  connection-active: {
+
+  # Active connection flow indicator
+  conn-active: {
     label: "Active Connection"
     shape: text
     style: {
       font-size: 32
     }
   }
-  
-  connection-inactive: {
-    label: "Inactive Connection"
+
+  # Conditional / auxiliary connection indicator
+  conn-dashed: {
+    label: "Conditional / Aux"
     shape: text
     style: {
       font-size: 32
     }
   }
-  
-  # Show connection examples
-  connection-active -> connection-inactive: {
+
+  # Connection style samples
+  conn-active -> conn-dashed: {
     style: {
       stroke: "#4caf50"
       stroke-width: 3
     }
   }
-  
-  connection-inactive -> active-box: {
+
+  conn-dashed -> lambda-box: {
     style: {
-      stroke: "#9e9e9e"
+      stroke: "#ff9800"
       stroke-width: 2
-      stroke-dash: 5
+      stroke-dash: 3
     }
   }
 }
-

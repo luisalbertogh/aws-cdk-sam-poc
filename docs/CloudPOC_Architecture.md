@@ -573,38 +573,6 @@ Response:
 7. **Multi-Region**: Extend to multiple AWS regions for disaster recovery
 8. **Load Testing**: Perform load testing to validate scalability assumptions
 
-## References
-
-- [AWS CDK Documentation](https://docs.aws.amazon.com/cdk/)
-- [AWS SAM Documentation](https://docs.aws.amazon.com/serverless-application-model/)
-- [AWS Step Functions Best Practices](https://docs.aws.amazon.com/step-functions/latest/dg/best-practices.html)
-- [AWS Lambda Powertools](https://docs.powertools.aws.dev/lambda/python/)
-- [Open Food Facts API](https://world.openfoodfacts.org/data)
-
-When the commented-out stacks are activated, the complete architecture would be:
-
-```
-Internet Users
-    ↓ HTTPS
-Internet
-    ↓
-Internet Gateway
-    ↓
-Public Subnets (in VPC)
-    ↓
-ECS Fargate Service (Chef UI)
-    ├─ Pulls images from ECR
-    ├─ Reads secrets from Secrets Manager
-    ├─ Sends logs to CloudWatch
-    └─ Invokes Step Functions workflows
-         ↓
-    Step Functions State Machine
-         └─ Sends logs to CloudWatch
-
-CI/CD (GitHub Actions)
-    └─ Pushes images to ECR
-```
-
 ## Data Flow
 
 ### Current State (Active Stacks Only)
@@ -617,165 +585,6 @@ CI/CD (GitHub Actions)
 2. **Storage**:
    - S3 bucket available for application data storage
    - All access must use SSL/TLS
-
-## Non-Functional Requirements Analysis
-
-### Scalability
-
-**Current Implementation**:
-- Multi-AZ VPC provides foundation for horizontal scaling
-- ECR supports unlimited image pulls
-- S3 scales automatically
-- API Gateway auto-scales to handle request volume
-- Lambda functions auto-scale with concurrent invocations
-- Step Functions support high throughput
-
-**Limitations**:
-- VPC is small (/27) - only 32 IPs total
-- API Gateway throttled at 10 req/s by default
-
-**Recommendations**:
-- Consider larger VPC if more services are added
-- Adjust API Gateway throttling limits based on expected load
-- Monitor Lambda concurrency limits
-
-### Performance
-
-**Network**:
-- Multi-AZ deployment reduces latency for geographically distributed users
-- Direct internet connectivity (no NAT Gateway) minimizes network hops
-- API Gateway provides low-latency HTTP access
-
-**Compute**:
-- Lambda ARM64 architecture offers better price/performance
-- Step Functions provide efficient workflow orchestration
-- Serverless architecture eliminates infrastructure overhead
-
-**Optimization Opportunities**:
-- Add CloudFront CDN for static assets
-- Implement caching layer (ElastiCache or DynamoDB)
-- Use Lambda provisioned concurrency to eliminate cold starts
-
-### Security
-
-**Network Security**:
-- ✅ VPC isolation
-- ✅ Security groups for traffic filtering
-- ✅ Public subnets only (appropriate for internet-facing app)
-- ❌ No WAF (AWS Web Application Firewall)
-- ❌ No VPC Flow Logs
-
-**Data Security**:
-- ✅ S3 encryption at rest (SSE-S3)
-- ✅ S3 SSL enforcement
-- ✅ S3 block public access
-- ✅ Secrets Manager for credentials
-- ✅ ECR private repository
-- ✅ ECR image scanning
-
-**IAM Security**:
-- ✅ Least-privilege IAM roles
-- ✅ Resource-based policies (Secrets Manager)
-- ✅ Explicit role permissions (no wildcards)
-
-**Container Security**:
-- ✅ Immutable image tags
-- ✅ Automated CVE scanning
-- ✅ Lifecycle policy removes untagged images
-
-**Compliance**:
-- Follows AWS Foundational Security Best Practices
-- SSL/TLS enforced
-- Encryption at rest enabled
-
-**Security Gaps**:
-- No AWS WAF for DDoS protection
-- No GuardDuty threat detection
-- No VPC Flow Logs
-- No AWS Config for compliance monitoring
-- Secrets created empty (must be manually populated)
-
-### Reliability
-
-**Current Design**:
-- ✅ Multi-AZ VPC (spans 2 AZs)
-- ✅ ECR lifecycle policy prevents storage exhaustion
-- ✅ CloudWatch logging enabled
-- ✅ Lambda retry logic with exponential backoff
-- ✅ Step Functions error handling with catch blocks
-
-**Availability**:
-- **API Gateway**: 99.95% SLA
-- **Lambda**: 99.95% SLA
-- **Step Functions**: 99.9% SLA
-- **S3**: 99.99% availability
-
-**Disaster Recovery**:
-- **RTO (Recovery Time Objective)**: ~5-10 minutes (redeploy from IaC)
-- **RPO (Recovery Point Objective)**: 0 (stateless application)
-- **Backup Strategy**: 
-  - S3 has RETAIN policy (survives stack deletion)
-  - ECR has RETAIN policy (images preserved)
-  - Secrets Manager has RETAIN policy
-  - Infrastructure is code (can be redeployed)
-
-**Recommendations**:
-- Increase ECS desired count to 2+
-- Add Application Load Balancer with health checks
-- Enable CloudWatch alarms for critical metrics
-- Implement automated rollback on deployment failures
-
-### Maintainability
-
-**Infrastructure as Code**:
-- ✅ CDK provides type-safe, reusable constructs
-- ✅ Configuration externalized in `config/` modules
-- ✅ Clear separation of concerns (one stack per responsibility)
-- ✅ Comprehensive inline documentation
-- ✅ Cross-stack references managed by CDK
-
-**Operational Visibility**:
-- ✅ CloudWatch logging integrated
-- ✅ X-Ray tracing enabled (API Gateway, Step Functions, Lambda)
-- ⚠️ No centralized dashboard
-- ⚠️ No alerting configured
-
-**Deployment**:
-- CDK deployment via `cdk deploy`
-- Environment-agnostic (configurable account/region)
-- Global tags applied to all resources
-
-**Code Organization**:
-```
-aws-infra/
-├── app.py                  # CDK app entry point
-├── stacks/                 # Stack definitions
-│   ├── network_stack.py
-│   ├── storage_stack.py
-│   ├── cluster_stack.py
-│   ├── registry_stack.py
-│   ├── secrets_stack.py
-│   ├── orchestration_stack.py
-│   └── api_stack.py
-└── config/                 # Configuration modules
-    ├── network_config.py
-    ├── s3_config.py
-    ├── ecr_config.py
-    ├── orchestration_config.py
-    └── api_config.py
-```
-
-**Maintainability Strengths**:
-- Clean separation between stacks
-- Reusable configuration modules
-- Self-documenting code
-- Minimal hard-coded values
-
-**Improvement Opportunities**:
-- Add automated testing (CDK assertions)
-- Implement CI/CD for infrastructure
-- Create operational runbooks
-- Add CloudWatch dashboards
 
 ## Phased Development
 
@@ -825,8 +634,6 @@ aws-infra/
 
 ## Risks and Mitigations
 
-## Risks and Mitigations
-
 ### Risk 1: API Key Exposure
 
 **Risk Level**: High  
@@ -865,9 +672,39 @@ aws-infra/
 
 ### Risk 4: No Secrets Rotation
 
+**Risk Level**: Medium
+**Impact**: Stale credentials if compromised; no automatic rotation in place
+**Probability**: Low (POC workload)
+
+**Mitigation**:
+
+- Enable Secrets Manager automatic rotation
+- Rotate API keys and Chainlit credentials on a schedule
+- Monitor Secrets Manager access via CloudTrail
+
 ### Risk 5: No Cost Controls
 
+**Risk Level**: Low
+**Impact**: Unexpected spend during load spikes or misconfiguration
+**Probability**: Low (serverless pay-per-use)
+
+**Mitigation**:
+
+- Set up AWS Budgets with email alerts
+- Configure billing alarms in CloudWatch
+- Review usage monthly via Cost Explorer
+
 ### Risk 6: No Disaster Recovery Plan
+
+**Risk Level**: Medium
+**Impact**: Extended outage if a region or service becomes unavailable
+**Probability**: Low (AWS services have high availability SLAs)
+
+**Mitigation**:
+
+- Infrastructure defined as code (CDK + SAM) — redeploy in under 10 minutes
+- S3, ECR, and Secrets Manager have RETAIN policy — data survives stack deletion
+- Document and test redeployment runbook
 
 ### Risk 7: External API Dependency
 
@@ -902,10 +739,6 @@ aws-infra/
 
 ### Current Stack
 
-## Technology Stack Recommendations
-
-### Current Stack
-
 | Component | Technology | Version/Config | Justification |
 |-----------|-----------|----------------|---------------|
 | IaC Framework | AWS CDK | Python 3.x | Type-safe, reusable constructs; superior to CloudFormation templates |
@@ -930,8 +763,6 @@ aws-infra/
 | Database | Amazon RDS (PostgreSQL) or Aurora Serverless | Persistent data storage |
 | Message Queue | Amazon SQS | Asynchronous task processing |
 | Load Balancing | Application Load Balancer | Layer 7 routing, health checks (if container services deployed) |
-
-## Cost Estimate
 
 ## Cost Estimate
 
@@ -1167,7 +998,7 @@ curl -fsSL https://d2lang.com/install.sh | sh
 
 ---
 
-**Document Version**: 2.0  
-**Last Updated**: May 8, 2026  
-**Author**: AWS CDK Infrastructure Analysis  
-**Status**: Active - Serverless API Architecture (7 CDK stacks + 2 SAM Lambda functions deployed)
+**Document Version**: 2.1
+**Last Updated**: May 9, 2026
+**Author**: AWS CDK Infrastructure Analysis
+**Status**: Active — Serverless API Architecture (7 CDK stacks + 2 SAM Lambda functions deployed)
